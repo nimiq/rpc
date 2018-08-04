@@ -1,36 +1,24 @@
-/**
- * @typedef {Object} responseHandler
- * @property {function(result:*, id:number, state:?string)} resolve
- * @property {function(error:*, id:number, state:?string)} reject
- */
+interface ResponseHandler {
+    resolve: (result: any, id?: number, state?: string|null) => any,
+    reject: (error: any, id?: number, state?: string|null) => any
+}
 
-class RpcClient {
-    /**
-     * @param {string} allowedOrigin The origin that is allowed to call this server
-     * @param {boolean} [storeState=false] Whether to store state in sessionStorage
-     * @returns {RpcClient}
-     * @protected
-     */
-    constructor(allowedOrigin, storeState = false) {
+abstract class RpcClient {
+    protected readonly _allowedOrigin: string;
+    protected _waitingRequests: RequestIdStorage;
+    protected _responseHandlers: Map<string | number, ResponseHandler>;
+
+    protected constructor(allowedOrigin: string, storeState: boolean = false) {
         this._allowedOrigin = allowedOrigin;
         this._waitingRequests = new RequestIdStorage(storeState);
-        /** @type {Map<string|number,responseHandler>} */
         this._responseHandlers = new Map();
     }
 
-    /**
-     * @param {string} command
-     * @param {Function} resolve
-     * @param {Function} reject
-     */
-    onResponse(command, resolve, reject) {
-        this._responseHandlers.set(command, { resolve, reject });
+    onResponse(command: string, resolve: (result: any, id?: number, state?: string | null) => any, reject: (error: any, id?: number, state?: string | null) => any) {
+        this._responseHandlers.set(command, {resolve, reject});
     }
 
-    /**
-     * @param {{origin:string, data:{id:number, status:string, result:*}}} message
-     */
-    _receive(message) {
+    _receive(message: ResponseMessage) {
         // Discard all messages from unwanted sources
         // or which are not replies
         // or which are not from the correct origin
@@ -46,7 +34,9 @@ class RpcClient {
             callback = this._responseHandlers.get(data.id);
         } else {
             const command = this._waitingRequests.getCommand(data.id);
-            callback = this._responseHandlers.get(command);
+            if (command) {
+                callback = this._responseHandlers.get(command);
+            }
         }
 
         const state = this._waitingRequests.getState(data.id);
@@ -56,13 +46,12 @@ class RpcClient {
 
             console.debug('RpcClient RECEIVE', data);
 
-            if (data.status === RpcClient.STATUS_OK) {
+            if (data.status === ResponseStatus.OK) {
                 callback.resolve(data.result, data.id, state);
             } else if (data.status === 'error') {
                 const error = new Error(data.result.message);
-                if (data.result.code && data.result.stack) {
-                    error.code = code;
-                    error.stack = stack;
+                if (data.result.stack) {
+                    error.stack = data.result.stack;
                 }
                 callback.reject(error, data.id, state);
             }
@@ -71,25 +60,18 @@ class RpcClient {
         }
     }
 
-    /**
-     * @return {Promise<boolean>}
-     */
-    init() {
-        return Promise.resolve(true);
-    }
+    abstract init(): Promise<void>;
 
-    close() {}
+    abstract close(): void;
 }
-RpcClient.STATUS_ERROR = 'error';
-RpcClient.STATUS_OK = 'ok';
+
 
 class PostMessageRpcClient extends RpcClient {
-    /**
-     * @param {Window} targetWindow
-     * @param {string} allowedOrigin
-     * @returns {PostMessageRpcClient}
-     */
-    constructor(targetWindow, allowedOrigin) {
+    private readonly _target: Window;
+    private readonly _receiveListener: (message: MessageEvent) => any;
+    private _connected: boolean;
+
+    constructor(targetWindow: Window, allowedOrigin: string) {
         super(allowedOrigin);
         this._target = targetWindow;
         this._connected = false;
@@ -97,25 +79,20 @@ class PostMessageRpcClient extends RpcClient {
         this._receiveListener = this._receive.bind(this);
     }
 
-    /**
-     * @returns {Promise<boolean>}
-     */
     async init() {
         await this._connect();
         window.addEventListener('message', this._receiveListener);
     }
 
-    /**
-     * @returns {Promise<boolean>}
-     */
     _connect() {
         return new Promise((resolve, reject) => {
             /**
              * @param {MessageEvent} message
              */
-            const connectedListener = ({ source, origin, data }) => {
+            const connectedListener = (message: MessageEvent) => {
+                const { source, origin, data } = message;
                 if (source !== this._target
-                    || data.status !== RpcClient.STATUS_OK
+                    || data.status !== ResponseStatus.OK
                     || data.result !== 'pong'
                     || data.id !== 1
                     || (this._allowedOrigin !== '*' && origin !== this._allowedOrigin)) return;
@@ -169,12 +146,7 @@ class PostMessageRpcClient extends RpcClient {
         });
     }
 
-    /**
-     * @param {string} command
-     * @param {...*} [args]
-     * @returns {Promise<*>}
-     */
-    async call(command, ...args) {
+    async call(command: string, ...args: any[]) {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
         return new Promise((resolve, reject) => {
@@ -200,43 +172,27 @@ class PostMessageRpcClient extends RpcClient {
 }
 
 class RedirectRpcClient extends RpcClient {
-    /**
-     * @param {string} targetURL
-     * @param {string} allowedOrigin
-     * @returns {PostMessageRpcClient}
-     */
-    constructor(targetURL, allowedOrigin) {
+    private readonly _target: string;
+
+    constructor(targetURL: string, allowedOrigin: string) {
         super(allowedOrigin, /*storeState*/ true);
         this._target = targetURL;
     }
 
-    /**
-     * @returns {Promise<boolean>}
-     */
     async init() {
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
         }
-        return true;
     }
 
-    /**
-     * @param {string} returnURL
-     * @param {string} command
-     * @param {...*} [args]
-     */
-    call(returnURL, command, ...args) {
+    close() {}
+
+    call(returnURL: string, command: string, ...args: any[]) {
         this.callWithLocalState(returnURL, null, command, ...args);
     }
 
-    /**
-     * @param {string} returnURL
-     * @param {?string} state
-     * @param {string} command
-     * @param {...*} [args]
-     */
-    callWithLocalState(returnURL, state, command, ...args) {
+    callWithLocalState(returnURL: string, state: string|null, command: string, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
 
@@ -244,6 +200,6 @@ class RedirectRpcClient extends RpcClient {
 
         console.debug('RpcClient REQUEST', command, args);
 
-        document.location = url;
+        window.location.href = url;
     }
 }

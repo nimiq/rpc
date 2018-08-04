@@ -1,0 +1,14 @@
+{
+  "name": "rpc",
+  "version": "0.0.1",
+  "description": "RPC Client/Server",
+  "scripts": {
+    "typecheck": "tsc"
+  },
+  "author": "Nimiq",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^3.0.1"
+  },
+  "dependencies": {}
+}

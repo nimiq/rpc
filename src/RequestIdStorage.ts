@@ -1,4 +1,8 @@
 class RequestIdStorage {
+    public static readonly KEY = 'rpcRequests';
+    private readonly _store: Storage | null;
+    private _validIds: Map<number|string, [string, string|null]>;
+
     /**
      * @param {boolean} [storeState=true] Whether to store state in sessionStorage
      */
@@ -11,45 +15,28 @@ class RequestIdStorage {
     }
 
     _restoreIds() {
-        const requests = this._store.getItem(RequestIdStorage.KEY);
+        const requests = this._store!.getItem(RequestIdStorage.KEY);
         if (requests) {
             // TODO: Improve encoding
             this._validIds = new Map(JSON.parse(requests));
         }
     }
 
-    /**
-     * @param {number} id
-     * @return {boolean}
-     */
-    has(id) {
+    has(id: number|string) {
         return this._validIds.has(id);
     }
 
-    /**
-     * @param {number} id
-     * @return {?string}
-     */
-    getCommand(id) {
+    getCommand(id: number|string) {
         const result = this._validIds.get(id);
         return result ? result[0] : null;
     }
 
-    /**
-     * @param {number} id
-     * @return {?string}
-     */
-    getState(id) {
+    getState(id: number|string) {
         const result = this._validIds.get(id);
         return result ? result[1] : null;
     }
 
-    /**
-     * @param {number} id
-     * @param {string} command
-     * @param {?string} [state]
-     */
-    add(id, command, state = null) {
+    add(id: number, command: string, state: string|null = null) {
         this._validIds.set(id, [command, state]);
         // TODO: Improve encoding
         if (this._store) {
@@ -57,10 +44,7 @@ class RequestIdStorage {
         }
     }
 
-    /**
-     * @param {number} id
-     */
-    remove(id) {
+    remove(id: number|string) {
         this._validIds.delete(id);
         // TODO: Improve encoding
         if (this._store) {
@@ -75,4 +59,3 @@ class RequestIdStorage {
         }
     }
 }
-RequestIdStorage.KEY = 'rpcRequests';

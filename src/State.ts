@@ -1,16 +1,20 @@
 class State {
-    /**
-     * @param {MessageEvent|{origin:string, data:Object, returnURL:string}|{origin:string, data:Object, source:string}} message
-     */
-    constructor(message) {
+    private readonly _origin: string;
+    private readonly _id: number;
+    private readonly _postMessage: boolean;
+    private readonly _returnURL: string | null;
+    private readonly _data: object;
+    private readonly _source: MessagePort|Window|ServiceWorker|string|null;
+
+    constructor(message: MessageEvent|RedirectRequest|PostMessage) {
         if (!message.data.id) throw Error('Missing id');
 
         this._origin = message.origin;
         this._id = message.data.id;
-        this._postMessage = message.source && !message.returnURL;
-        this._returnURL = message.returnURL;
+        this._postMessage = 'source' in message && !('returnURL' in message);
+        this._returnURL = 'returnURL' in message ? message.returnURL : null;
         this._data = message.data;
-        this._source = message.source ? message.source : null;
+        this._source = 'source' in message ? message.source : null;
     }
 
     get id() {
@@ -21,7 +25,7 @@ class State {
         return this._origin;
     }
 
-    get data() {
+    get data(): any {
         return this._data;
     }
 
@@ -30,7 +34,7 @@ class State {
     }
 
     toJSON() {
-        const obj = {
+        const obj: any = {
             origin: this._origin,
             data: this._data,
         };
@@ -49,16 +53,12 @@ class State {
         return JSON.stringify(obj);
     }
 
-    static fromJSON(json) {
+    static fromJSON(json: string) {
         const obj = JSON.parse(json);
         return new State(obj);
     }
 
-    /**
-     * @param {string} status
-     * @param {*} result
-     */
-    reply(status, result) {
+    reply(status: string, result: any) {
         console.debug('RpcServer REPLY', result);
 
         if (this._postMessage) {
@@ -85,7 +85,7 @@ class State {
             }, this.origin);
         } else if (this._returnURL) {
             // Send via top-level navigation
-            document.location = UrlRpcEncoder.prepareRedirectReply(this, status, result);
+            window.location.href = UrlRpcEncoder.prepareRedirectReply(this, status, result);
         }
     }
 }

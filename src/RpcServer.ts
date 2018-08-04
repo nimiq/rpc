@@ -1,31 +1,23 @@
-/**
- * @typedef {function(state:State, args:...*):*} commandHandler
- */
+type CommandHandler = (state: State, ...args: any[]) => any;
 
 class RpcServer {
-    /**
-     * @param {string} allowedOrigin - The origin that is allowed to call this server
-     * @returns {RpcServer}
-     */
-    constructor(allowedOrigin) {
+    private readonly _allowedOrigin: string;
+    private readonly _responseHandlers: Map<string, CommandHandler>;
+    private readonly _receiveListener: (message: MessageEvent) => any;
+
+    constructor(allowedOrigin: string) {
         this._allowedOrigin = allowedOrigin;
-        /** @type {Map<string,commandHandler>} */
         this._responseHandlers = new Map();
         this._responseHandlers.set('ping', () => 'pong');
         this._receiveListener = this._receive.bind(this);
     }
 
-    /**
-     * @param {string} command
-     * @param {commandHandler} fn
-     */
-    onRequest(command, fn) {
+    onRequest(command: string, fn: CommandHandler) {
         this._responseHandlers.set(command, fn);
     }
 
     init() {
         window.addEventListener('message', this._receiveListener);
-
         this._receiveRedirect();
     }
 
@@ -40,19 +32,18 @@ class RpcServer {
         }
     }
 
-    /**
-     * @param {MessageEvent|{origin:string, data:{id:number, command:string, args:*}, returnURL:string}} message
-     */
-    _receive(message) {
-        let state = null;
+    _receive(message: MessageEvent|RedirectRequest) {
+        let state: State|null = null;
         try {
             state = new State(message);
 
             // Cannot reply to a message that has no source window or return URL
-            if (!message.source && !message.returnURL) return;
+            if (!('source' in message) && !('returnURL' in message)) return;
 
             // Ignore messages without a command
-            if (!state.data.command) return;
+            if (!('command' in state.data)) {
+                return;
+            }
 
             if (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin) {
                 throw new Error('Unauthorized');
@@ -64,7 +55,7 @@ class RpcServer {
             if (!this._responseHandlers.has(state.data.command)) {
                 throw new Error(`Unknown command: ${state.data.command}`);
             }
-            const requestedMethod = this._responseHandlers.get(state.data.command);
+            const requestedMethod = this._responseHandlers.get(state.data.command)!;
             // Do not include state argument
             if (Math.max(requestedMethod.length - 1, 0) < args.length) {
                 throw new Error(`Too many arguments passed: ${message}`);
@@ -81,10 +72,10 @@ class RpcServer {
                 result
                     .then(finalResult => {
                         if (finalResult !== undefined) {
-                            RpcServer._ok(state, finalResult);
+                            RpcServer._ok(state!, finalResult);
                         }
                     })
-                    .catch(error => RpcServer._error(state, error));
+                    .catch(error => RpcServer._error(state!, error));
             } else if (result !== undefined) {
                 RpcServer._ok(state, result);
             }
@@ -95,24 +86,14 @@ class RpcServer {
         }
     }
 
-    /**
-     * @param {State} state
-     * @param {*} result
-     */
-    static _ok(state, result) {
-        state.reply(RpcServer.STATUS_OK, result);
+    static _ok(state: State, result: any) {
+        state.reply(ResponseStatus.OK, result);
     }
 
-    /**
-     * @param {State} state
-     * @param {Error} error
-     */
-    static _error(state, error) {
-        state.reply(RpcServer.STATUS_ERROR,
+    static _error(state: State, error: Error) {
+        state.reply(ResponseStatus.ERROR,
             error.message
-                ? { message: error.message, stack: error.stack, code: error.code }
+                ? { message: error.message, stack: error.stack }
                 : { message: error });
     }
 }
-RpcServer.STATUS_ERROR = 'error';
-RpcServer.STATUS_OK = 'ok';

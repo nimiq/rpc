@@ -1,14 +1,10 @@
 class UrlRpcEncoder {
-    /**
-     * @param {URL|Location} url
-     * @return {{origin:string, data:{id:number, command:string, args:*}, returnURL:string}|null}
-     */
-    static receiveRedirectCommand(url) {
+    static receiveRedirectCommand(url: URL|Location): RedirectRequest|null {
         // Need referrer for origin check
         if (!document.referrer) return null;
 
         // Parse query
-        const params = new URLSearchParams(url.search || url.searchParams);
+        const params = new URLSearchParams(url.search);
         const referrer = new URL(document.referrer);
 
         // Ignore messages without a command
@@ -21,7 +17,7 @@ class UrlRpcEncoder {
         if (!params.has('returnURL')) return null;
 
         // Only allow returning to same origin
-        const returnURL = new URL(params.get('returnURL'));
+        const returnURL = new URL(params.get('returnURL')!);
         if (returnURL.origin !== referrer.origin) return null;
 
         // Parse args
@@ -29,7 +25,7 @@ class UrlRpcEncoder {
         let args = [];
         if (params.has('args')) {
             try {
-                args = JSON.parse(params.get('args'));
+                args = JSON.parse(params.get('args')!);
             } catch(e) {
                 // Do nothing
             }
@@ -39,11 +35,11 @@ class UrlRpcEncoder {
         return {
             origin: referrer.origin,
             data: {
-                id: parseInt(params.get('id')),
-                command: params.get('command'),
+                id: parseInt(params.get('id')!),
+                command: params.get('command')!,
                 args: args,
             },
-            returnURL: params.get('returnURL'),
+            returnURL: params.get('returnURL')!,
         };
     }
 
@@ -51,12 +47,12 @@ class UrlRpcEncoder {
      * @param {URL|Location} url
      * @return {{origin:string, data:{id:number, status:string, result:*}}}
      */
-    static receiveRedirectResponse(url) {
+    static receiveRedirectResponse(url: URL|Location): ResponseMessage|null {
         // Need referrer for origin check
         if (!document.referrer) return null;
 
         // Parse query
-        const params = new URLSearchParams(url.search || url.searchParams);
+        const params = new URLSearchParams(url.search);
         const referrer = new URL(document.referrer);
 
         // Ignore messages without a status
@@ -70,25 +66,20 @@ class UrlRpcEncoder {
 
         // Parse result
         // TODO: Improve encoding
-        const result = JSON.parse(params.get('result'));
+        const result = JSON.parse(params.get('result')!);
+        const status = params.get('status') === ResponseStatus.OK ? ResponseStatus.OK : ResponseStatus.ERROR;
 
         return {
             origin: referrer.origin,
             data: {
-                id: parseInt(params.get('id')),
-                status: params.get('status'),
+                id: parseInt(params.get('id')!),
+                status: status,
                 result: result,
             },
         };
     }
 
-    /**
-     * @param {State} state
-     * @param {string} status
-     * @param {any} result
-     * @return {string}
-     */
-    static prepareRedirectReply(state, status, result) {
+    static prepareRedirectReply(state: State, status: string, result: any): string {
         const params = new URLSearchParams();
         params.set('status', status);
         // TODO: Improve encoding
@@ -98,15 +89,7 @@ class UrlRpcEncoder {
         return `${state.returnURL}?${params.toString()}`;
     }
 
-    /**
-     * @param {string} targetURL
-     * @param {number} id
-     * @param {string} returnURL
-     * @param {string} command
-     * @param {any[]} [args]
-     * @return {string}
-     */
-    static prepareRedirectInvocation(targetURL, id, returnURL, command, args) {
+    static prepareRedirectInvocation(targetURL: string, id: number, returnURL: string, command: string, args: any[]): string {
         const params = new URLSearchParams();
         params.set('id', id.toString());
         params.set('returnURL', returnURL);
