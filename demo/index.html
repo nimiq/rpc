@@ -1,0 +1,16 @@
+<script src="../src/Messages.js"></script>
+<script src="../src/RandomUtils.js"></script>
+<script src="../src/RequestIdStorage.js"></script>
+<script src="../src/UrlRpcEncoder.js"></script>
+<script src="../src/RpcClient.js"></script>
+<script src="DemoClient.js"></script>
+<input type="text" id="arg" placeholder="Input Argument"/>
+<button id="iframe">iFrame</button>
+<button id="popup">popUp</button>
+<button id="redirect">redirect</button>
+<script>
+    const client = new DemoClient();
+    document.getElementById('iframe').onclick = () => client.testIFrame(document.getElementById('arg').value).then(alert);
+    document.getElementById('popup').onclick = () => client.testPopup(document.getElementById('arg').value).then(alert);
+    document.getElementById('redirect').onclick = () => client.testRedirect(document.getElementById('arg').value);
+</script>

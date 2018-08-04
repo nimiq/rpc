@@ -1,0 +1,17 @@
+<script src="../src/Messages.js"></script>
+<script src="../src/UrlRpcEncoder.js"></script>
+<script src="../src/State.js"></script>
+<script src="../src/RpcServer.js"></script>
+<input type="text" id="input"/>
+<button id="ok">Confirm</button>
+<script>
+    const server = new RpcServer('*');
+    server.onRequest('test', (state, arg) => {
+        return new Promise((resolve, reject) => {
+            document.getElementById('ok').onclick = () => {
+                resolve(`received ${arg}, entered ${document.getElementById('input').value}`);
+            };
+        });
+    });
+    server.init();
+</script>

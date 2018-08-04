@@ -1,0 +1,40 @@
+<script src="../src/Messages.js"></script>
+<script src="../src/RandomUtils.js"></script>
+<script src="../src/RequestIdStorage.js"></script>
+<script src="../src/UrlRpcEncoder.js"></script>
+<script src="../src/RpcClient.js"></script>
+<script src="../src/State.js"></script>
+<script src="../src/RpcServer.js"></script>
+<button id="forward"></button>
+<script>
+    const client = new RedirectRpcClient('third.html', '*');
+    const server = new RpcServer('*');
+
+    server.onRequest('iFrameTest', (state, arg) => {
+        return `iframe response to call with arg ${arg}`;
+    });
+
+    server.onRequest('test', (state, arg) => {
+        document.getElementById('forward').innerText = 'Foward to third';
+        document.getElementById('forward').onclick = () => {
+            const searchPos = window.location.href.indexOf('?');
+            client.callWithLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state.toJSON(), 'test', arg);
+        };
+    });
+
+    client.onResponse('test', (result, id, state) => {
+        console.log(result);
+        document.getElementById('forward').innerText = 'Foward to parent';
+        document.getElementById('forward').onclick = () => {
+            // Reply to main
+            state = State.fromJSON(state);
+            state.reply(ResponseStatus.OK, result);
+        };
+    }, (error, id, state) => {
+        state = State.fromJSON(state);
+        state.reply(ResponseStatus.ERROR, error);
+    });
+
+    client.init().then(() => {});
+    server.init();
+</script>
