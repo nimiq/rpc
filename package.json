@@ -3,12 +3,15 @@
   "version": "0.0.1",
   "description": "RPC Client/Server",
   "scripts": {
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "lint": "tslint 'src/**/*.ts'",
+    "lint-fix": "tslint --fix 'src/**/*.ts'"
   },
   "author": "Nimiq",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^3.0.1"
+    "typescript": "^3.0.1",
+    "tslint": "^5.11.0"
   },
   "dependencies": {}
 }

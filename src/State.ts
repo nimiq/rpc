@@ -1,4 +1,25 @@
 class State {
+
+    get id() {
+        return this._id;
+    }
+
+    get origin() {
+        return this._origin;
+    }
+
+    get data(): any {
+        return this._data;
+    }
+
+    get returnURL() {
+        return this._returnURL;
+    }
+
+    public static fromJSON(json: string) {
+        const obj = JSON.parse(json);
+        return new State(obj);
+    }
     private readonly _origin: string;
     private readonly _id: number;
     private readonly _postMessage: boolean;
@@ -17,23 +38,7 @@ class State {
         this._source = 'source' in message ? message.source : null;
     }
 
-    get id() {
-        return this._id;
-    }
-
-    get origin() {
-        return this._origin;
-    }
-
-    get data(): any {
-        return this._data;
-    }
-
-    get returnURL() {
-        return this._returnURL;
-    }
-
-    toJSON() {
+    public toJSON() {
         const obj: any = {
             origin: this._origin,
             data: this._data,
@@ -53,12 +58,7 @@ class State {
         return JSON.stringify(obj);
     }
 
-    static fromJSON(json: string) {
-        const obj = JSON.parse(json);
-        return new State(obj);
-    }
-
-    reply(status: string, result: any) {
+    public reply(status: ResponseStatus, result: any) {
         console.debug('RpcServer REPLY', result);
 
         if (this._postMessage) {
@@ -81,7 +81,7 @@ class State {
             target.postMessage({
                 status,
                 result,
-                id: this.id
+                id: this.id,
             }, this.origin);
         } else if (this._returnURL) {
             // Send via top-level navigation

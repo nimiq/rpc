@@ -1,6 +1,17 @@
 type CommandHandler = (state: State, ...args: any[]) => any;
 
 class RpcServer {
+
+    public static _ok(state: State, result: any) {
+        state.reply(ResponseStatus.OK, result);
+    }
+
+    public static _error(state: State, error: Error) {
+        state.reply(ResponseStatus.ERROR,
+            error.message
+                ? { message: error.message, stack: error.stack }
+                : { message: error });
+    }
     private readonly _allowedOrigin: string;
     private readonly _responseHandlers: Map<string, CommandHandler>;
     private readonly _receiveListener: (message: MessageEvent) => any;
@@ -12,27 +23,27 @@ class RpcServer {
         this._receiveListener = this._receive.bind(this);
     }
 
-    onRequest(command: string, fn: CommandHandler) {
+    public onRequest(command: string, fn: CommandHandler) {
         this._responseHandlers.set(command, fn);
     }
 
-    init() {
+    public init() {
         window.addEventListener('message', this._receiveListener);
         this._receiveRedirect();
     }
 
-    close() {
+    public close() {
         window.removeEventListener('message', this._receiveListener);
     }
 
-    _receiveRedirect() {
+    public _receiveRedirect() {
         const message = UrlRpcEncoder.receiveRedirectCommand(window.location);
         if (message) {
             this._receive(message);
         }
     }
 
-    _receive(message: MessageEvent|RedirectRequest) {
+    public _receive(message: MessageEvent|RedirectRequest) {
         let state: State|null = null;
         try {
             state = new State(message);
@@ -70,12 +81,12 @@ class RpcServer {
             // otherwise we assume the handler to do the reply when appropriate.
             if (result instanceof Promise) {
                 result
-                    .then(finalResult => {
+                    .then((finalResult) => {
                         if (finalResult !== undefined) {
                             RpcServer._ok(state!, finalResult);
                         }
                     })
-                    .catch(error => RpcServer._error(state!, error));
+                    .catch((error) => RpcServer._error(state!, error));
             } else if (result !== undefined) {
                 RpcServer._ok(state, result);
             }
@@ -84,16 +95,5 @@ class RpcServer {
                 RpcServer._error(state, error);
             }
         }
-    }
-
-    static _ok(state: State, result: any) {
-        state.reply(ResponseStatus.OK, result);
-    }
-
-    static _error(state: State, error: Error) {
-        state.reply(ResponseStatus.ERROR,
-            error.message
-                ? { message: error.message, stack: error.stack }
-                : { message: error });
     }
 }

@@ -1,5 +1,5 @@
 class UrlRpcEncoder {
-    static receiveRedirectCommand(url: URL|Location): RedirectRequest|null {
+    public static receiveRedirectCommand(url: URL|Location): RedirectRequest|null {
         // Need referrer for origin check
         if (!document.referrer) return null;
 
@@ -26,7 +26,7 @@ class UrlRpcEncoder {
         if (params.has('args')) {
             try {
                 args = JSON.parse(params.get('args')!);
-            } catch(e) {
+            } catch (e) {
                 // Do nothing
             }
         }
@@ -35,9 +35,9 @@ class UrlRpcEncoder {
         return {
             origin: referrer.origin,
             data: {
-                id: parseInt(params.get('id')!),
+                id: parseInt(params.get('id')!, 10),
                 command: params.get('command')!,
-                args: args,
+                args,
             },
             returnURL: params.get('returnURL')!,
         };
@@ -47,7 +47,7 @@ class UrlRpcEncoder {
      * @param {URL|Location} url
      * @return {{origin:string, data:{id:number, status:string, result:*}}}
      */
-    static receiveRedirectResponse(url: URL|Location): ResponseMessage|null {
+    public static receiveRedirectResponse(url: URL|Location): ResponseMessage|null {
         // Need referrer for origin check
         if (!document.referrer) return null;
 
@@ -72,14 +72,14 @@ class UrlRpcEncoder {
         return {
             origin: referrer.origin,
             data: {
-                id: parseInt(params.get('id')!),
-                status: status,
-                result: result,
+                id: parseInt(params.get('id')!, 10),
+                status,
+                result,
             },
         };
     }
 
-    static prepareRedirectReply(state: State, status: string, result: any): string {
+    public static prepareRedirectReply(state: State, status: ResponseStatus, result: any): string {
         const params = new URLSearchParams();
         params.set('status', status);
         // TODO: Improve encoding
@@ -89,7 +89,9 @@ class UrlRpcEncoder {
         return `${state.returnURL}?${params.toString()}`;
     }
 
-    static prepareRedirectInvocation(targetURL: string, id: number, returnURL: string, command: string, args: any[]): string {
+    public static prepareRedirectInvocation(targetURL: string, id: number,
+                                            returnURL: string, command: string,
+                                            args: any[]): string {
         const params = new URLSearchParams();
         params.set('id', id.toString());
         params.set('returnURL', returnURL);

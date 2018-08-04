@@ -1,6 +1,6 @@
 interface ResponseHandler {
-    resolve: (result: any, id?: number, state?: string|null) => any,
-    reject: (error: any, id?: number, state?: string|null) => any
+    resolve: (result: any, id?: number, state?: string|null) => any;
+    reject: (error: any, id?: number, state?: string|null) => any;
 }
 
 abstract class RpcClient {
@@ -14,11 +14,13 @@ abstract class RpcClient {
         this._responseHandlers = new Map();
     }
 
-    onResponse(command: string, resolve: (result: any, id?: number, state?: string | null) => any, reject: (error: any, id?: number, state?: string | null) => any) {
+    public onResponse(command: string,
+                      resolve: (result: any, id?: number, state?: string | null) => any,
+                      reject: (error: any, id?: number, state?: string | null) => any) {
         this._responseHandlers.set(command, {resolve, reject});
     }
 
-    _receive(message: ResponseMessage) {
+    public _receive(message: ResponseMessage) {
         // Discard all messages from unwanted sources
         // or which are not replies
         // or which are not from the correct origin
@@ -60,11 +62,10 @@ abstract class RpcClient {
         }
     }
 
-    abstract init(): Promise<void>;
+    public abstract init(): Promise<void>;
 
-    abstract close(): void;
+    public abstract close(): void;
 }
-
 
 class PostMessageRpcClient extends RpcClient {
     private readonly _target: Window;
@@ -79,12 +80,12 @@ class PostMessageRpcClient extends RpcClient {
         this._receiveListener = this._receive.bind(this);
     }
 
-    async init() {
+    public async init() {
         await this._connect();
         window.addEventListener('message', this._receiveListener);
     }
 
-    _connect() {
+    public _connect() {
         return new Promise((resolve, reject) => {
             /**
              * @param {MessageEvent} message
@@ -146,7 +147,7 @@ class PostMessageRpcClient extends RpcClient {
         });
     }
 
-    async call(command: string, ...args: any[]) {
+    public async call(command: string, ...args: any[]) {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
         return new Promise((resolve, reject) => {
@@ -166,7 +167,7 @@ class PostMessageRpcClient extends RpcClient {
         });
     }
 
-    close() {
+    public close() {
         window.removeEventListener('message', this._receiveListener);
     }
 }
@@ -179,20 +180,21 @@ class RedirectRpcClient extends RpcClient {
         this._target = targetURL;
     }
 
-    async init() {
+    public async init() {
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
         }
     }
 
-    close() {}
+    /* tslint:disable:no-empty */
+    public close() {}
 
-    call(returnURL: string, command: string, ...args: any[]) {
+    public call(returnURL: string, command: string, ...args: any[]) {
         this.callWithLocalState(returnURL, null, command, ...args);
     }
 
-    callWithLocalState(returnURL: string, state: string|null, command: string, ...args: any[]) {
+    public callWithLocalState(returnURL: string, state: string|null, command: string, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
 
