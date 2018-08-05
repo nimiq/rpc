@@ -1,9 +1,14 @@
-interface ResponseHandler {
+import {RandomUtils} from './RandomUtils';
+import {ResponseMessage, ResponseStatus} from './Messages';
+import {RequestIdStorage} from './RequestIdStorage';
+import {UrlRpcEncoder} from './UrlRpcEncoder';
+
+export interface ResponseHandler {
     resolve: (result: any, id?: number, state?: string|null) => any;
     reject: (error: any, id?: number, state?: string|null) => any;
 }
 
-abstract class RpcClient {
+export abstract class RpcClient {
     protected readonly _allowedOrigin: string;
     protected _waitingRequests: RequestIdStorage;
     protected _responseHandlers: Map<string | number, ResponseHandler>;
@@ -67,7 +72,7 @@ abstract class RpcClient {
     }
 }
 
-class PostMessageRpcClient extends RpcClient {
+export class PostMessageRpcClient extends RpcClient {
     private readonly _target: Window;
     private readonly _receiveListener: (message: MessageEvent) => any;
     private _connected: boolean;
@@ -172,7 +177,7 @@ class PostMessageRpcClient extends RpcClient {
     }
 }
 
-class RedirectRpcClient extends RpcClient {
+export class RedirectRpcClient extends RpcClient {
     private readonly _target: string;
 
     constructor(targetURL: string, allowedOrigin: string) {

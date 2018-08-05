@@ -1,16 +1,9 @@
 <button id="forward"></button>
-<script src="../dist/Base64.js"></script>
-<script src="../dist/JSONUtils.js"></script>
-<script src="../dist/RequestIdStorage.js"></script>
-<script src="../dist/UrlRpcEncoder.js"></script>
-<script src="../dist/RandomUtils.js"></script>
-<script src="../dist/Messages.js"></script>
-<script src="../dist/State.js"></script>
-<script src="../dist/RpcClient.js"></script>
-<script src="../dist/RpcServer.js"></script>
+<script src="../dist/client.js"></script>
+<script src="../dist/server.js"></script>
 <script>
-    const client = new RedirectRpcClient('third.html', '*');
-    const server = new RpcServer('*');
+    const client = new Client.RedirectRpcClient('third.html', '*');
+    const server = new Server.RpcServer('*');
 
     server.onRequest('iFrameTest', (state, arg) => {
         return `iframe response to call with arg ${arg}`;
@@ -29,12 +22,12 @@
         document.getElementById('forward').innerText = 'Foward to parent';
         document.getElementById('forward').onclick = () => {
             // Reply to main
-            const state = State.fromJSON(stateStr);
-            state.reply(ResponseStatus.OK, result);
+            const state = Server.State.fromJSON(stateStr);
+            state.reply(Server.ResponseStatus.OK, result);
         };
     }, (error, id, stateStr) => {
-        const state = State.fromJSON(stateStr);
-        state.reply(ResponseStatus.ERROR, error);
+        const state = Server.State.fromJSON(stateStr);
+        state.reply(Server.ResponseStatus.ERROR, error);
     });
 
     client.init().then(() => {});

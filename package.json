@@ -6,12 +6,16 @@
     "typecheck": "tsc",
     "lint": "tslint 'src/**/*.ts'",
     "lint-fix": "tslint --fix 'src/**/*.ts'",
-    "test": "jest"
+    "test": "jest",
+    "build-server": "tsc && browserify dist/RpcServer.js -d -s Server -o dist/server.js",
+    "build-client": "tsc && browserify dist/RpcClient.js -d -s Client -o dist/client.js",
+    "build": "yarn run build-server && yarn run build-client"
   },
   "author": "Nimiq",
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/jest": "^23.3.1",
+    "browserify": "^16.2.2",
     "jest": "^23.4.2",
     "ts-jest": "^23.1.2",
     "ts-loader": "^4.4.2",

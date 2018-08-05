@@ -3,7 +3,7 @@ interface Message {
     data: object;
 }
 
-interface ResponseMessage extends Message {
+export interface ResponseMessage extends Message {
     data: {
         id: number,
         status: ResponseStatus,
@@ -11,11 +11,11 @@ interface ResponseMessage extends Message {
     };
 }
 
-interface PostMessage extends Message {
+export interface PostMessage extends Message {
     source: string;
 }
 
-interface RedirectRequest {
+export interface RedirectRequest {
     origin: string;
     data: {
         id: number,
@@ -25,7 +25,7 @@ interface RedirectRequest {
     returnURL: string;
 }
 
-enum ResponseStatus {
+export enum ResponseStatus {
     OK = 'ok',
     ERROR = 'error',
 }

@@ -1,4 +1,4 @@
-import {Base64} from "../src/Base64";
+import {Base64} from "../src/base64/Base64";
 
 class BufferUtils {
     public static toAscii(buffer: Uint8Array) {

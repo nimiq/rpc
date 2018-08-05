@@ -1,8 +1,10 @@
+import {Base64} from './base64/Base64';
+
 enum ExtraJSONTypes {
     UINT8_ARRAY,
 }
 
-class JSONUtils {
+export class JSONUtils {
 
     public static stringify(value: any) {
         return JSON.stringify(value, JSONUtils._jsonifyType);

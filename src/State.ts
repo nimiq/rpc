@@ -1,4 +1,8 @@
-class State {
+import {PostMessage, RedirectRequest, ResponseStatus} from './Messages';
+import {UrlRpcEncoder} from './UrlRpcEncoder';
+export {ResponseStatus} from './Messages';
+
+export class State {
 
     get id() {
         return this._id;
