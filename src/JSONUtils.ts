@@ -1,4 +1,4 @@
-import {Base64} from './Base64';
+import {Base64} from './Base64.js';
 
 enum ExtraJSONTypes {
     UINT8_ARRAY,

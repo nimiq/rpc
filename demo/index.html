@@ -2,9 +2,9 @@
 <button id="iframe">iFrame</button>
 <button id="popup">popUp</button>
 <button id="redirect">redirect</button>
-<script src="../dist/client.js"></script>
-<script src="DemoClient.js"></script>
-<script>
+<script type="module">
+    import {DemoClient} from './DemoClient.js';
+
     const client = new DemoClient();
     document.getElementById('iframe').onclick = () => client.testIFrame(document.getElementById('arg').value).then(alert);
     document.getElementById('popup').onclick = () => client.testPopup(document.getElementById('arg').value).then(alert);

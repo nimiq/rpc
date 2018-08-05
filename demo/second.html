@@ -1,9 +1,11 @@
 <button id="forward"></button>
-<script src="../dist/client.js"></script>
-<script src="../dist/server.js"></script>
-<script>
-    const client = new RPC.client.RedirectRpcClient('third.html', '*');
-    const server = new RPC.server.RpcServer('*');
+<script type="module">
+    import {RedirectRpcClient} from "../dist/RpcClient.js";
+    import {RpcServer} from "../dist/RpcServer.js";
+    import {State, ResponseStatus} from "../dist/State.js";
+
+    const client = new RedirectRpcClient('third.html', '*');
+    const server = new RpcServer('*');
 
     server.onRequest('iFrameTest', (state, arg) => {
         return `iframe response to call with arg ${arg}`;

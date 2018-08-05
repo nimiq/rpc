@@ -1,5 +1,6 @@
-import {JSONUtils} from './JSONUtils';
-import {State} from './State';
+import {JSONUtils} from './JSONUtils.js';
+import {State} from './State.js';
+import {RedirectRequest, ResponseMessage, ResponseStatus} from "./Messages.js";
 
 export class UrlRpcEncoder {
     public static receiveRedirectCommand(url: URL|Location): RedirectRequest|null {

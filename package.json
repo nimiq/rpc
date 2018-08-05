@@ -9,16 +9,14 @@
     "test": "jest"
   },
   "author": "Nimiq",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/jest": "^23.3.1",
     "jest": "^23.4.2",
     "ts-jest": "^23.1.2",
     "ts-loader": "^4.4.2",
     "tslint": "^5.11.0",
-    "typescript": "^3.0.1",
-    "webpack": "^4.16.4",
-    "webpack-command": "^0.4.1"
+    "typescript": "^3.0.1"
   },
   "dependencies": {}
 }

@@ -1,4 +1,4 @@
-import {JSONUtils} from './JSONUtils';
+import {JSONUtils} from './JSONUtils.js';
 
 export class RequestIdStorage {
     public static readonly KEY = 'rpcRequests';

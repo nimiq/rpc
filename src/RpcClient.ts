@@ -1,5 +1,7 @@
-import {RequestIdStorage} from './RequestIdStorage';
-import {UrlRpcEncoder} from './UrlRpcEncoder';
+import {RequestIdStorage} from './RequestIdStorage.js';
+import {UrlRpcEncoder} from './UrlRpcEncoder.js';
+import {ResponseMessage, ResponseStatus} from "./Messages.js";
+import {RandomUtils} from "./RandomUtils.js";
 
 export interface ResponseHandler {
     resolve: (result: any, id?: number, state?: string|null) => any;

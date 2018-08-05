@@ -1,8 +1,9 @@
 <input type="text" id="input"/>
 <button id="ok">Confirm</button>
-<script src="../dist/server.js"></script>
-<script>
-    const server = new RPC.server.RpcServer('*');
+<script type="module">
+    import {RpcServer} from "../dist/RpcServer.js";
+
+    const server = new RpcServer('*');
     server.onRequest('test', (state, arg) => {
         return new Promise((resolve, reject) => {
             document.getElementById('ok').onclick = () => {

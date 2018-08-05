@@ -1,5 +1,6 @@
-import {State} from './State';
-import {UrlRpcEncoder} from './UrlRpcEncoder';
+import {State} from './State.js';
+import {UrlRpcEncoder} from './UrlRpcEncoder.js';
+import {RedirectRequest, ResponseStatus} from "./Messages.js";
 
 export type CommandHandler = (state: State, ...args: any[]) => any;
 

@@ -1,4 +1,6 @@
-import {UrlRpcEncoder} from './UrlRpcEncoder';
+import {UrlRpcEncoder} from './UrlRpcEncoder.js';
+import {PostMessage, RedirectRequest, ResponseStatus} from "./Messages.js";
+export {ResponseStatus} from './Messages.js';
 
 export class State {
 
@@ -59,6 +61,8 @@ export class State {
         }
         return JSON.stringify(obj);
     }
+
+
 
     public reply(status: ResponseStatus, result: any) {
         console.debug('RpcServer REPLY', result);
