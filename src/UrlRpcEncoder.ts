@@ -1,4 +1,7 @@
-class UrlRpcEncoder {
+import {JSONUtils} from './JSONUtils';
+import {State} from './State';
+
+export class UrlRpcEncoder {
     public static receiveRedirectCommand(url: URL|Location): RedirectRequest|null {
         // Need referrer for origin check
         if (!document.referrer) return null;
@@ -21,11 +24,10 @@ class UrlRpcEncoder {
         if (returnURL.origin !== referrer.origin) return null;
 
         // Parse args
-        // TODO: Improve encoding
         let args = [];
         if (params.has('args')) {
             try {
-                args = JSON.parse(params.get('args')!);
+                args = JSONUtils.parse(params.get('args')!);
             } catch (e) {
                 // Do nothing
             }
@@ -65,8 +67,7 @@ class UrlRpcEncoder {
         if (!params.has('result')) return null;
 
         // Parse result
-        // TODO: Improve encoding
-        const result = JSON.parse(params.get('result')!);
+        const result = JSONUtils.parse(params.get('result')!);
         const status = params.get('status') === ResponseStatus.OK ? ResponseStatus.OK : ResponseStatus.ERROR;
 
         return {
@@ -82,9 +83,9 @@ class UrlRpcEncoder {
     public static prepareRedirectReply(state: State, status: ResponseStatus, result: any): string {
         const params = new URLSearchParams();
         params.set('status', status);
-        // TODO: Improve encoding
-        params.set('result', JSON.stringify(result));
+        params.set('result', JSONUtils.stringify(result));
         params.set('id', state.id.toString());
+
         // TODO: what if it already includes a query string
         return `${state.returnURL}?${params.toString()}`;
     }
@@ -98,7 +99,7 @@ class UrlRpcEncoder {
         params.set('command', command);
 
         if (Array.isArray(args)) {
-            params.set('args', JSON.stringify(args));
+            params.set('args', JSONUtils.stringify(args));
         }
 
         // TODO: what if it already includes a query string

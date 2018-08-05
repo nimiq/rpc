@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "outDir": "./dist/js/",
     "target": "esnext",
     "module": "esnext",
     "strict": true,
@@ -10,11 +11,6 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    },
     "lib": [
       "es2015",
       "es6",

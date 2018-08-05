@@ -1,9 +1,12 @@
-interface ResponseHandler {
+import {RequestIdStorage} from './RequestIdStorage';
+import {UrlRpcEncoder} from './UrlRpcEncoder';
+
+export interface ResponseHandler {
     resolve: (result: any, id?: number, state?: string|null) => any;
     reject: (error: any, id?: number, state?: string|null) => any;
 }
 
-abstract class RpcClient {
+export abstract class RpcClient {
     protected readonly _allowedOrigin: string;
     protected _waitingRequests: RequestIdStorage;
     protected _responseHandlers: Map<string | number, ResponseHandler>;
@@ -20,7 +23,11 @@ abstract class RpcClient {
         this._responseHandlers.set(command, {resolve, reject});
     }
 
-    public _receive(message: ResponseMessage) {
+    public abstract init(): Promise<void>;
+
+    public abstract close(): void;
+
+    protected _receive(message: ResponseMessage) {
         // Discard all messages from unwanted sources
         // or which are not replies
         // or which are not from the correct origin
@@ -61,13 +68,9 @@ abstract class RpcClient {
             console.warn('Unknown RPC response:', data);
         }
     }
-
-    public abstract init(): Promise<void>;
-
-    public abstract close(): void;
 }
 
-class PostMessageRpcClient extends RpcClient {
+export class PostMessageRpcClient extends RpcClient {
     private readonly _target: Window;
     private readonly _receiveListener: (message: MessageEvent) => any;
     private _connected: boolean;
@@ -85,7 +88,31 @@ class PostMessageRpcClient extends RpcClient {
         window.addEventListener('message', this._receiveListener);
     }
 
-    public _connect() {
+    public async call(command: string, ...args: any[]) {
+        if (!this._connected) throw new Error('Client is not connected, call init first');
+
+        return new Promise((resolve, reject) => {
+            const obj = {
+                command,
+                args,
+                id: RandomUtils.generateRandomId(),
+            };
+
+            // Store the request resolvers
+            this._responseHandlers.set(obj.id, { resolve, reject });
+            this._waitingRequests.add(obj.id, command);
+
+            console.debug('RpcClient REQUEST', command, args);
+
+            this._target.postMessage(obj, this._allowedOrigin);
+        });
+    }
+
+    public close() {
+        window.removeEventListener('message', this._receiveListener);
+    }
+
+    private _connect() {
         return new Promise((resolve, reject) => {
             /**
              * @param {MessageEvent} message
@@ -146,33 +173,9 @@ class PostMessageRpcClient extends RpcClient {
             connectTimer = setTimeout(tryToConnect, 100);
         });
     }
-
-    public async call(command: string, ...args: any[]) {
-        if (!this._connected) throw new Error('Client is not connected, call init first');
-
-        return new Promise((resolve, reject) => {
-            const obj = {
-                command,
-                args,
-                id: RandomUtils.generateRandomId(),
-            };
-
-            // Store the request resolvers
-            this._responseHandlers.set(obj.id, { resolve, reject });
-            this._waitingRequests.add(obj.id, command);
-
-            console.debug('RpcClient REQUEST', command, args);
-
-            this._target.postMessage(obj, this._allowedOrigin);
-        });
-    }
-
-    public close() {
-        window.removeEventListener('message', this._receiveListener);
-    }
 }
 
-class RedirectRpcClient extends RpcClient {
+export class RedirectRpcClient extends RpcClient {
     private readonly _target: string;
 
     constructor(targetURL: string, allowedOrigin: string) {
@@ -191,10 +194,10 @@ class RedirectRpcClient extends RpcClient {
     public close() {}
 
     public call(returnURL: string, command: string, ...args: any[]) {
-        this.callWithLocalState(returnURL, null, command, ...args);
+        this.callAndSaveLocalState(returnURL, null, command, ...args);
     }
 
-    public callWithLocalState(returnURL: string, state: string|null, command: string, ...args: any[]) {
+    public callAndSaveLocalState(returnURL: string, state: string|null, command: string, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
 

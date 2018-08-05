@@ -1,5 +1,17 @@
-class RequestIdStorage {
+import {JSONUtils} from './JSONUtils';
+
+export class RequestIdStorage {
     public static readonly KEY = 'rpcRequests';
+
+    private static _decodeIds(ids: string) {
+        const obj = JSONUtils.parse(ids);
+        const validIds = new Map();
+        for (const key of Object.keys(obj)) {
+            const integerKey = parseInt(key, 10);
+            validIds.set(isNaN(integerKey) ? key : integerKey, obj[key]);
+        }
+        return validIds;
+    }
     private readonly _store: Storage | null;
     private _validIds: Map<number|string, [string, string|null]>;
 
@@ -11,14 +23,6 @@ class RequestIdStorage {
         this._validIds = new Map();
         if (storeState) {
             this._restoreIds();
-        }
-    }
-
-    public _restoreIds() {
-        const requests = this._store!.getItem(RequestIdStorage.KEY);
-        if (requests) {
-            // TODO: Improve encoding
-            this._validIds = new Map(JSON.parse(requests));
         }
     }
 
@@ -38,24 +42,39 @@ class RequestIdStorage {
 
     public add(id: number, command: string, state: string|null = null) {
         this._validIds.set(id, [command, state]);
-        // TODO: Improve encoding
-        if (this._store) {
-            this._store.setItem(RequestIdStorage.KEY, JSON.stringify([...this._validIds]));
-        }
+        this._storeIds();
     }
 
     public remove(id: number|string) {
         this._validIds.delete(id);
-        // TODO: Improve encoding
-        if (this._store) {
-            this._store.setItem(RequestIdStorage.KEY, JSON.stringify([...this._validIds]));
-        }
+        this._storeIds();
     }
 
     public clear() {
         this._validIds.clear();
         if (this._store) {
             this._store.removeItem(RequestIdStorage.KEY);
+        }
+    }
+
+    private _encodeIds() {
+        const obj: any = Object.create(null);
+        for (const [key, value] of this._validIds) {
+            obj[key] = value;
+        }
+        return JSONUtils.stringify(obj);
+    }
+
+    private _restoreIds() {
+        const requests = this._store!.getItem(RequestIdStorage.KEY);
+        if (requests) {
+            this._validIds = RequestIdStorage._decodeIds(requests);
+        }
+    }
+
+    private _storeIds() {
+        if (this._store) {
+            this._store.setItem(RequestIdStorage.KEY, this._encodeIds());
         }
     }
 }

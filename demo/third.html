@@ -1,11 +1,8 @@
-<script src="../src/Messages.js"></script>
-<script src="../src/UrlRpcEncoder.js"></script>
-<script src="../src/State.js"></script>
-<script src="../src/RpcServer.js"></script>
 <input type="text" id="input"/>
 <button id="ok">Confirm</button>
+<script src="../dist/server.js"></script>
 <script>
-    const server = new RpcServer('*');
+    const server = new RPC.server.RpcServer('*');
     server.onRequest('test', (state, arg) => {
         return new Promise((resolve, reject) => {
             document.getElementById('ok').onclick = () => {

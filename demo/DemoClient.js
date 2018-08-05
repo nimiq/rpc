@@ -1,9 +1,7 @@
-/* global RpcClient */
-
 class DemoClient {
     constructor() {
         this._connected = this._startIFrame();
-        this._redirectClient = new RedirectRpcClient('second.html', DemoClient.DEMO_ORIGIN);
+        this._redirectClient = new RPC.client.RedirectRpcClient('second.html', DemoClient.DEMO_ORIGIN);
 
         this._redirectClient.onResponse('test', (result) => {
             console.log('RESULT:', result);
@@ -34,7 +32,7 @@ class DemoClient {
     async _startIFrame() {
         const $iframe = await this._createIframe();
         if (!$iframe.contentWindow) throw new Error(`IFrame contentWindow is ${typeof $iframe.contentWindow}`);
-        this._iframeClient = new PostMessageRpcClient($iframe.contentWindow, DemoClient.DEMO_ORIGIN);
+        this._iframeClient = new RPC.client.PostMessageRpcClient($iframe.contentWindow, DemoClient.DEMO_ORIGIN);
         await this._iframeClient.init();
     }
 
@@ -73,7 +71,7 @@ class DemoClient {
         // Await popup loaded
         await new Promise(res => { $popup.onload = res; });
 
-        const rpcClient = new PostMessageRpcClient($popup, DemoClient.DEMO_ORIGIN);
+        const rpcClient = new RPC.client.PostMessageRpcClient($popup, DemoClient.DEMO_ORIGIN);
         await rpcClient.init();
 
         try {

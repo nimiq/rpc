@@ -1,6 +1,9 @@
-type CommandHandler = (state: State, ...args: any[]) => any;
+import {State} from './State';
+import {UrlRpcEncoder} from './UrlRpcEncoder';
 
-class RpcServer {
+export type CommandHandler = (state: State, ...args: any[]) => any;
+
+export class RpcServer {
 
     public static _ok(state: State, result: any) {
         state.reply(ResponseStatus.OK, result);
@@ -36,14 +39,14 @@ class RpcServer {
         window.removeEventListener('message', this._receiveListener);
     }
 
-    public _receiveRedirect() {
+    private _receiveRedirect() {
         const message = UrlRpcEncoder.receiveRedirectCommand(window.location);
         if (message) {
             this._receive(message);
         }
     }
 
-    public _receive(message: MessageEvent|RedirectRequest) {
+    private _receive(message: MessageEvent|RedirectRequest) {
         let state: State|null = null;
         try {
             state = new State(message);
