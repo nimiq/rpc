@@ -1,9 +1,6 @@
-import {State} from './State';
-import {UrlRpcEncoder} from './UrlRpcEncoder';
+type CommandHandler = (state: State, ...args: any[]) => any;
 
-export type CommandHandler = (state: State, ...args: any[]) => any;
-
-export class RpcServer {
+class RpcServer {
 
     public static _ok(state: State, result: any) {
         state.reply(ResponseStatus.OK, result);

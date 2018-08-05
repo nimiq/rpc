@@ -1,6 +1,4 @@
-import {UrlRpcEncoder} from './UrlRpcEncoder';
-
-export class State {
+class State {
 
     get id() {
         return this._id;

@@ -1,8 +1,15 @@
 <input type="text" id="input"/>
 <button id="ok">Confirm</button>
-<script src="../dist/server.js"></script>
+<script src="../dist/Base64.js"></script>
+<script src="../dist/JSONUtils.js"></script>
+<script src="../dist/RequestIdStorage.js"></script>
+<script src="../dist/UrlRpcEncoder.js"></script>
+<script src="../dist/RandomUtils.js"></script>
+<script src="../dist/Messages.js"></script>
+<script src="../dist/State.js"></script>
+<script src="../dist/RpcServer.js"></script>
 <script>
-    const server = new RPC.server.RpcServer('*');
+    const server = new RpcServer('*');
     server.onRequest('test', (state, arg) => {
         return new Promise((resolve, reject) => {
             document.getElementById('ok').onclick = () => {

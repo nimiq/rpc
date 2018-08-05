@@ -1,7 +1,4 @@
-import {JSONUtils} from './JSONUtils';
-import {State} from './State';
-
-export class UrlRpcEncoder {
+class UrlRpcEncoder {
     public static receiveRedirectCommand(url: URL|Location): RedirectRequest|null {
         // Need referrer for origin check
         if (!document.referrer) return null;

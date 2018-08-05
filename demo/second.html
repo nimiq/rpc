@@ -1,9 +1,16 @@
 <button id="forward"></button>
-<script src="../dist/client.js"></script>
-<script src="../dist/server.js"></script>
+<script src="../dist/Base64.js"></script>
+<script src="../dist/JSONUtils.js"></script>
+<script src="../dist/RequestIdStorage.js"></script>
+<script src="../dist/UrlRpcEncoder.js"></script>
+<script src="../dist/RandomUtils.js"></script>
+<script src="../dist/Messages.js"></script>
+<script src="../dist/State.js"></script>
+<script src="../dist/RpcClient.js"></script>
+<script src="../dist/RpcServer.js"></script>
 <script>
-    const client = new RPC.client.RedirectRpcClient('third.html', '*');
-    const server = new RPC.server.RpcServer('*');
+    const client = new RedirectRpcClient('third.html', '*');
+    const server = new RpcServer('*');
 
     server.onRequest('iFrameTest', (state, arg) => {
         return `iframe response to call with arg ${arg}`;

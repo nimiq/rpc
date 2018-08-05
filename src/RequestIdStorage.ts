@@ -1,6 +1,4 @@
-import {JSONUtils} from './JSONUtils';
-
-export class RequestIdStorage {
+class RequestIdStorage {
     public static readonly KEY = 'rpcRequests';
 
     private static _decodeIds(ids: string) {

@@ -23,7 +23,7 @@ THE SOFTWARE.
  */
 
 /* tslint:disable:no-bitwise */
-export class Base64 {
+class Base64 {
 
     // base64 is 4/3 + up to two characters of the original data
     public static byteLength(b64: string) {
