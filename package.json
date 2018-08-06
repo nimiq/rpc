@@ -2,6 +2,10 @@
   "name": "rpc",
   "version": "0.0.1",
   "description": "RPC Client/Server",
+  "repository" : {
+    "type" : "git",
+    "url" : "git+https://github.com/nimiq/rpc.git"
+  },
   "scripts": {
     "typecheck": "tsc",
     "lint": "tslint 'src/**/*.ts'",
@@ -9,7 +13,8 @@
     "test": "jest",
     "build-server": "tsc && browserify dist/RpcServer.js -d -s Server -o dist/server.js",
     "build-client": "tsc && browserify dist/RpcClient.js -d -s Client -o dist/client.js",
-    "build": "yarn run build-server && yarn run build-client"
+    "build": "yarn run build-server && yarn run build-client",
+    "prepare": "yarn build"
   },
   "author": "Nimiq",
   "license": "Apache-2.0",
