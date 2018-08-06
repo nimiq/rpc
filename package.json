@@ -1,5 +1,5 @@
 {
-  "name": "rpc",
+  "name": "@nimiq/rpc",
   "version": "0.0.1",
   "description": "RPC Client/Server",
   "repository" : {
@@ -13,9 +13,13 @@
     "test": "jest",
     "build-server": "tsc -d && browserify dist/RpcServer.js -d -s RpcServer -o dist/rpc-server.js",
     "build-client": "tsc -d && browserify dist/RpcClient.js -d -s RpcClient -o dist/rpc-client.js",
-    "build": "yarn run build-server && yarn run build-client",
-    "prepare": "yarn build"
+    "build": "yarn run build-server && yarn run build-client"
   },
+  "files": [
+    "dist",
+    "src",
+    "types"
+  ],
   "author": "Nimiq",
   "license": "Apache-2.0",
   "devDependencies": {
