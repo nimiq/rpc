@@ -1,9 +1,9 @@
 <button id="forward"></button>
-<script src="../dist/client.js"></script>
-<script src="../dist/server.js"></script>
+<script src="../dist/rpc-client.js"></script>
+<script src="../dist/rpc-server.js"></script>
 <script>
-    const client = new Client.RedirectRpcClient('third.html', '*');
-    const server = new Server.RpcServer('*');
+    const client = new RpcClient.RedirectRpcClient('third.html', '*');
+    const server = new RpcServer.RpcServer('*');
 
     server.onRequest('iFrameTest', (state, arg) => {
         return `iframe response to call with arg ${arg}`;
@@ -22,12 +22,12 @@
         document.getElementById('forward').innerText = 'Foward to parent';
         document.getElementById('forward').onclick = () => {
             // Reply to main
-            const state = Server.State.fromJSON(stateStr);
-            state.reply(Server.ResponseStatus.OK, result);
+            const state = RpcServer.State.fromJSON(stateStr);
+            state.reply(RpcServer.ResponseStatus.OK, result);
         };
     }, (error, id, stateStr) => {
-        const state = Server.State.fromJSON(stateStr);
-        state.reply(Server.ResponseStatus.ERROR, error);
+        const state = RpcServer.State.fromJSON(stateStr);
+        state.reply(RpcServer.ResponseStatus.ERROR, error);
     });
 
     client.init().then(() => {});

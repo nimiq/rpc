@@ -11,8 +11,8 @@
     "lint": "tslint 'src/**/*.ts'",
     "lint-fix": "tslint --fix 'src/**/*.ts'",
     "test": "jest",
-    "build-server": "tsc && browserify dist/RpcServer.js -d -s Server -o dist/server.js",
-    "build-client": "tsc && browserify dist/RpcClient.js -d -s Client -o dist/client.js",
+    "build-server": "tsc -d && browserify dist/RpcServer.js -d -s RpcServer -o dist/rpc-server.js",
+    "build-client": "tsc -d && browserify dist/RpcClient.js -d -s RpcClient -o dist/rpc-client.js",
     "build": "yarn run build-server && yarn run build-client",
     "prepare": "yarn build"
   },
