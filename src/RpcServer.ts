@@ -8,11 +8,11 @@ export type CommandHandler = (state: State, ...args: any[]) => any;
 
 export class RpcServer {
 
-    public static _ok(state: State, result: any) {
+    private static _ok(state: State, result: any) {
         state.reply(ResponseStatus.OK, result);
     }
 
-    public static _error(state: State, error: Error) {
+    private static _error(state: State, error: Error) {
         state.reply(ResponseStatus.ERROR,
             error.message
                 ? { message: error.message, stack: error.stack }

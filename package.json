@@ -1,29 +1,29 @@
 {
   "name": "@nimiq/rpc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "RPC Client/Server",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nimiq/rpc.git"
   },
+  "main": "dist/rpc.common.js",
+  "module": "dist/rpc.umd.js",
+  "types": "types/index.d.ts",
   "scripts": {
     "typecheck": "tsc",
     "lint": "tslint 'src/**/*.ts'",
     "lint-fix": "tslint --fix 'src/**/*.ts'",
     "test": "jest",
-    "build-server": "tsc -d && node_modules/.bin/rollup build/RpcServer.js --file dist/RpcServer.js --format umd --output.name RpcServer && dts-bundle --main build/RpcClient.d.ts --name RpcClient --out ../dist/RpcClient.d.ts",
-    "build-client": "tsc -d && node_modules/.bin/rollup build/RpcClient.js --file dist/RpcClient.js --format umd --output.name RpcClient && dts-bundle --main build/RpcServer.d.ts --name RpcServer --out ../dist/RpcServer.d.ts",
-    "build": "yarn run build-server && yarn run build-client"
+    "build": "tsc && rollup -c"
   },
   "files": [
     "dist",
-    "src"
+    "types"
   ],
   "author": "Nimiq",
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/jest": "^23.3.1",
-    "dts-bundle": "^0.7.3",
     "jest": "^23.4.2",
     "rollup": "^0.64.0",
     "ts-jest": "^23.1.2",
