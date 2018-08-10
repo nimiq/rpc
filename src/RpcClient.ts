@@ -59,7 +59,7 @@ export abstract class RpcClient {
 
             if (data.status === ResponseStatus.OK) {
                 callback.resolve(data.result, data.id, state);
-            } else if (data.status === 'error') {
+            } else if (data.status === ResponseStatus.ERROR) {
                 const error = new Error(data.result.message);
                 if (data.result.stack) {
                     error.stack = data.result.stack;
