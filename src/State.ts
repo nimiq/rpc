@@ -66,15 +66,15 @@ export class State {
         return JSON.stringify(obj);
     }
 
-    public error(error: Error) {
-        this.reply(ResponseStatus.ERROR,
-            error.message
-                ? { message: error.message, stack: error.stack }
-                : { message: error });
-    }
-
     public reply(status: ResponseStatus, result: any) {
         console.debug('RpcServer REPLY', result);
+
+        if (status === ResponseStatus.ERROR) {
+            // serialize error objects
+            result = typeof result === 'object'
+                ? { message: result.message, stack: result.stack }
+                : { message: result };
+        }
 
         if (this._postMessage) {
             // Send via postMessage (e.g., popup)

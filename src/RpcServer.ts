@@ -13,9 +13,9 @@ export class RpcServer {
     }
 
     private static _error(state: State, error: Error) {
-        state.error(error);
+        state.reply(ResponseStatus.ERROR, error);
     }
-    
+
     private readonly _allowedOrigin: string;
     private readonly _responseHandlers: Map<string, CommandHandler>;
     private readonly _receiveListener: (message: MessageEvent) => any;

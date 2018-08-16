@@ -1,34 +1,45 @@
-<button id="forward"></button>
-<script src="../dist/rpc.umd.js"></script>
-<script>
-    const client = new Rpc.RedirectRpcClient('third.html', '*');
-    const server = new Rpc.RpcServer('*');
+<html>
+<body>
+    <button id="error">Throw Error</button>
+    <button id="forward"></button>
+    <script src="../dist/rpc.umd.js"></script>
+    <script>
+        const client = new Rpc.RedirectRpcClient('third.html', '*');
+        const server = new Rpc.RpcServer('*');
 
-    server.onRequest('iFrameTest', (state, arg) => {
-        return `iframe response to call with arg ${arg}`;
-    });
+        server.onRequest('iFrameTest', (state, arg) => {
+            return `iframe response to call with arg ${arg}`;
+        });
 
-    server.onRequest('test', (state, arg) => {
-        document.getElementById('forward').innerText = 'Foward to third';
-        document.getElementById('forward').onclick = () => {
-            const searchPos = window.location.href.indexOf('?');
-            client.callAndSaveLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state.toJSON(), 'test', arg);
-        };
-    });
+        server.onRequest('test', (state, arg) => {
+            document.getElementById('forward').textContent = 'Foward to third';
+            document.getElementById('forward').onclick = () => {
+                const searchPos = window.location.href.indexOf('?');
+                client.callAndSaveLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state.toJSON(), 'test', arg);
+            };
+            document.getElementById('error').onclick = () => {
+                state.reply(Rpc.ResponseStatus.ERROR, new Error('this is an error'));
+            };
+        });
 
-    client.onResponse('test', (result, id, stateStr) => {
-        console.log(result);
-        document.getElementById('forward').innerText = 'Foward to parent';
-        document.getElementById('forward').onclick = () => {
-            // Reply to main
+        client.onResponse('test', (result, id, stateStr) => {
+            console.log(result);
             const state = Rpc.State.fromJSON(stateStr);
-            state.reply(Rpc.ResponseStatus.OK, result);
-        };
-    }, (error, id, stateStr) => {
-        const state = Rpc.State.fromJSON(stateStr);
-        state.reply(Rpc.ResponseStatus.ERROR, error);
-    });
+            document.getElementById('forward').textContent = 'Foward to parent';
+            document.getElementById('forward').onclick = () => {
+                // Reply to main
+                state.reply(Rpc.ResponseStatus.OK, result);
+            };
+            document.getElementById('error').onclick = () => {
+                state.reply(Rpc.ResponseStatus.ERROR, new Error('this is an error'));
+            };
+        }, (error, id, stateStr) => {
+            const state = Rpc.State.fromJSON(stateStr);
+            state.reply(Rpc.ResponseStatus.ERROR, error);
+        });
 
-    client.init().then(() => {});
-    server.init();
-</script>
+        client.init().then(() => { });
+        server.init();
+    </script>
+</body>
+</html>
