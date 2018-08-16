@@ -66,6 +66,13 @@ export class State {
         return JSON.stringify(obj);
     }
 
+    public error(error: Error) {
+        this.reply(ResponseStatus.ERROR,
+            error.message
+                ? { message: error.message, stack: error.stack }
+                : { message: error });
+    }
+
     public reply(status: ResponseStatus, result: any) {
         console.debug('RpcServer REPLY', result);
 
