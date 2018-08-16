@@ -20,6 +20,10 @@ export class State {
         return this._returnURL;
     }
 
+    get source() {
+        return this._source;
+    }
+
     public static fromJSON(json: string) {
         const obj = JSON.parse(json);
         return new State(obj);
