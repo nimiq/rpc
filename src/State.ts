@@ -69,6 +69,13 @@ export class State {
     public reply(status: ResponseStatus, result: any) {
         console.debug('RpcServer REPLY', result);
 
+        if (status === ResponseStatus.ERROR) {
+            // serialize error objects
+            result = typeof result === 'object'
+                ? { message: result.message, stack: result.stack }
+                : { message: result };
+        }
+
         if (this._postMessage) {
             // Send via postMessage (e.g., popup)
 

@@ -8,6 +8,10 @@
             document.getElementById('ok').onclick = () => {
                 resolve(`received ${arg}, entered ${document.getElementById('input').value}`);
             };
+            window.addEventListener('beforeUnload', () => {
+                // todo: somehow get this to index.html in popup case
+                state.reply(Rpc.ResponseStatus.ERROR, new Error('window closed'));
+            });
         });
     });
     server.init();
