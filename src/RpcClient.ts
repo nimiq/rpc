@@ -1,11 +1,11 @@
-import {RandomUtils} from './RandomUtils';
-import {ResponseMessage, ResponseStatus} from './Messages';
-import {RequestIdStorage} from './RequestIdStorage';
-import {UrlRpcEncoder} from './UrlRpcEncoder';
+import { RandomUtils } from './RandomUtils';
+import { ResponseMessage, ResponseStatus } from './Messages';
+import { RequestIdStorage } from './RequestIdStorage';
+import { UrlRpcEncoder } from './UrlRpcEncoder';
 
 export interface ResponseHandler {
-    resolve: (result: any, id?: number, state?: string|null) => any;
-    reject: (error: any, id?: number, state?: string|null) => any;
+    resolve: (result: any, id?: number, state?: string | null) => any;
+    reject: (error: any, id?: number, state?: string | null) => any;
 }
 
 export abstract class RpcClient {
@@ -22,7 +22,7 @@ export abstract class RpcClient {
     public onResponse(command: string,
                       resolve: (result: any, id?: number, state?: string | null) => any,
                       reject: (error: any, id?: number, state?: string | null) => any) {
-        this._responseHandlers.set(command, {resolve, reject});
+        this._responseHandlers.set(command, { resolve, reject });
     }
 
     public abstract init(): Promise<void>;
@@ -103,6 +103,16 @@ export class PostMessageRpcClient extends RpcClient {
             // Store the request resolvers
             this._responseHandlers.set(obj.id, { resolve, reject });
             this._waitingRequests.add(obj.id, command);
+
+            // Periodically check if recepient window is still open
+            const checkIfServerWasClosed = () => {
+                if (this._target === null) {
+                    reject(new Error('window was closed'));
+                }
+
+                setTimeout(checkIfServerWasClosed, 500);
+            };
+            setTimeout(checkIfServerWasClosed, 500);
 
             console.debug('RpcClient REQUEST', command, args);
 
@@ -193,13 +203,13 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     /* tslint:disable:no-empty */
-    public close() {}
+    public close() { }
 
     public call(returnURL: string, command: string, ...args: any[]) {
         this.callAndSaveLocalState(returnURL, null, command, ...args);
     }
 
-    public callAndSaveLocalState(returnURL: string, state: string|null, command: string, ...args: any[]) {
+    public callAndSaveLocalState(returnURL: string, state: string | null, command: string, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
 
