@@ -10,6 +10,13 @@ export default [
     {
         input: 'build/main.js',
         output: {
+            file: 'dist/rpc.es.js',
+            format: 'es'
+        }
+    },
+    {
+        input: 'build/main.js',
+        output: {
             file: 'dist/rpc.umd.js',
             format: 'umd',
             name: 'Rpc'

@@ -1,13 +1,13 @@
 {
   "name": "@nimiq/rpc",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "RPC Client/Server",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nimiq/rpc.git"
   },
-  "main": "dist/rpc.common.js",
-  "module": "dist/rpc.umd.js",
+  "main": "dist/rpc.umd.js",
+  "module": "dist/rpc.es.js",
   "types": "types/index.d.ts",
   "scripts": {
     "typecheck": "tsc",
