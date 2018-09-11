@@ -195,6 +195,7 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     public async init() {
+        this._rejectOnBack();
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
@@ -214,8 +215,32 @@ export class RedirectRpcClient extends RpcClient {
 
         this._waitingRequests.add(id, command, state);
 
+        history.replaceState({id}, document.title);
+
         console.debug('RpcClient REQUEST', command, args);
 
         window.location.href = url;
+    }
+
+    private _rejectOnBack() {
+        if (history.state && history.state.id) {
+            const id = history.state.id;
+            let callback;
+            if (this._responseHandlers.has(id)) {
+                callback = this._responseHandlers.get(id);
+            } else {
+                const command = this._waitingRequests.getCommand(id);
+                if (command) {
+                    callback = this._responseHandlers.get(command);
+                }
+            }
+            const state = this._waitingRequests.getState(id);
+            if (callback) {
+                this._waitingRequests.remove(id);
+                console.debug('RpcClient back');
+                const error = new Error('Request aborted');
+                callback.reject(error, id, state);
+            }
+        }
     }
 }
