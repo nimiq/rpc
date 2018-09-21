@@ -39,17 +39,7 @@ export abstract class RpcClient {
             || (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin)) return;
         const data = message.data;
 
-        // Response handlers by id have priority to more general ones by command
-        let callback;
-        if (this._responseHandlers.has(data.id)) {
-            callback = this._responseHandlers.get(data.id);
-        } else {
-            const command = this._waitingRequests.getCommand(data.id);
-            if (command) {
-                callback = this._responseHandlers.get(command);
-            }
-        }
-
+        const callback = this._getCallback(data.id);
         const state = this._waitingRequests.getState(data.id);
 
         if (callback) {
@@ -69,6 +59,19 @@ export abstract class RpcClient {
         } else {
             console.warn('Unknown RPC response:', data);
         }
+    }
+
+    protected _getCallback(id: number): ResponseHandler | undefined {
+        // Response handlers by id have priority to more general ones by command
+        if (this._responseHandlers.has(id)) {
+            return this._responseHandlers.get(id);
+        } else {
+            const command = this._waitingRequests.getCommand(id);
+            if (command) {
+                return this._responseHandlers.get(command);
+            }
+        }
+        return undefined;
     }
 }
 
@@ -225,19 +228,13 @@ export class RedirectRpcClient extends RpcClient {
     private _rejectOnBack() {
         if (history.state && history.state.id) {
             const id = history.state.id;
-            let callback;
-            if (this._responseHandlers.has(id)) {
-                callback = this._responseHandlers.get(id);
-            } else {
-                const command = this._waitingRequests.getCommand(id);
-                if (command) {
-                    callback = this._responseHandlers.get(command);
-                }
-            }
+
+            const callback = this._getCallback(id);
             const state = this._waitingRequests.getState(id);
+
             if (callback) {
                 this._waitingRequests.remove(id);
-                console.debug('RpcClient back');
+                console.debug('RpcClient BACK');
                 const error = new Error('Request aborted');
                 callback.reject(error, id, state);
             }
