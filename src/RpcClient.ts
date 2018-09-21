@@ -218,7 +218,7 @@ export class RedirectRpcClient extends RpcClient {
 
         this._waitingRequests.add(id, command, state);
 
-        history.replaceState({id}, document.title);
+        history.replaceState({rpcRequestId: id}, document.title);
 
         console.debug('RpcClient REQUEST', command, args);
 
@@ -226,8 +226,8 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     private _rejectOnBack() {
-        if (history.state && history.state.id) {
-            const id = history.state.id;
+        if (history.state && history.state.rpcRequestId) {
+            const id = history.state.rpcRequestId;
 
             const callback = this._getCallback(id);
             const state = this._waitingRequests.getState(id);
