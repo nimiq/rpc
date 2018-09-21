@@ -198,10 +198,11 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     public async init() {
-        this._rejectOnBack();
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
+        } else {
+            this._rejectOnBack();
         }
     }
 
