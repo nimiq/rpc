@@ -110,7 +110,7 @@ export class PostMessageRpcClient extends RpcClient {
             // Periodically check if recepient window is still open
             const checkIfServerWasClosed = () => {
                 if (this._target.closed) {
-                    reject(new Error('window was closed'));
+                    reject(new Error('Window was closed'));
                 }
                 setTimeout(checkIfServerWasClosed, 500);
             };
