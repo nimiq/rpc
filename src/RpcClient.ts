@@ -93,10 +93,10 @@ export class PostMessageRpcClient extends RpcClient {
         window.addEventListener('message', this._receiveListener);
     }
 
-    public async call(command: string, ...args: any[]) {
+    public async call(command: string, ...args: any[]): Promise<any> {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
-        return new Promise((resolve, reject) => {
+        return new Promise<any>((resolve, reject) => {
             const obj = {
                 command,
                 args,
