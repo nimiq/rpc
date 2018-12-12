@@ -79,9 +79,9 @@ export abstract class RpcClient {
 }
 
 export class PostMessageRpcClient extends RpcClient {
-    private readonly _target: Window;
+    protected readonly _target: Window;
+    protected _connected: boolean;
     private readonly _receiveListener: (message: MessageEvent) => any;
-    private _connected: boolean;
 
     constructor(targetWindow: Window, allowedOrigin: string) {
         super(allowedOrigin);
@@ -189,6 +189,34 @@ export class PostMessageRpcClient extends RpcClient {
 
             // @ts-ignore
             connectTimer = setTimeout(tryToConnect, 100);
+        });
+    }
+}
+
+export class ReceiveOnlyPostMessageRpcClient extends PostMessageRpcClient {
+    private _requestId: number;
+
+    constructor(targetWindow: Window, allowedOrigin: string, requestId: number) {
+        super(targetWindow, allowedOrigin);
+        this._requestId = requestId;
+    }
+
+    public async listenFor(command: string,): Promise<any> {
+        if (!this._connected) throw new Error('Client is not connected, call init first');
+
+        return new Promise<any>((resolve, reject) => {
+            // Store the request resolvers
+            this._responseHandlers.set(this._requestId, { resolve, reject });
+            this._waitingRequests.add(this._requestId, command);
+
+            // Periodically check if recepient window is still open
+            const checkIfServerWasClosed = () => {
+                if (this._target.closed) {
+                    reject(new Error('Window was closed'));
+                }
+                setTimeout(checkIfServerWasClosed, 500);
+            };
+            setTimeout(checkIfServerWasClosed, 500);
         });
     }
 }
