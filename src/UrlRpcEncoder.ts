@@ -1,4 +1,4 @@
-import {RedirectRequest, ResponseMessage, ResponseStatus} from './Messages';
+import {RedirectRequest, ResponseMessage, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
 import {JSONUtils} from './JSONUtils';
 import {State} from './State';
 
@@ -20,9 +20,12 @@ export class UrlRpcEncoder {
         // Ignore messages without a valid return path
         if (!params.has('returnURL')) return null;
 
-        // Only allow returning to same origin
-        const returnURL = new URL(params.get('returnURL')!);
-        if (returnURL.origin !== referrer.origin) return null;
+        const answerByPostMessage = params.get('returnURL') === POSTMESSAGE_RETURN_URL && window.opener;
+        if (!answerByPostMessage) {
+            // Only allow returning to same origin
+            const returnURL = new URL(params.get('returnURL')!);
+            if (returnURL.origin !== referrer.origin) return null;
+        }
 
         // Parse args
         let args = [];
@@ -43,13 +46,10 @@ export class UrlRpcEncoder {
                 args,
             },
             returnURL: params.get('returnURL')!,
+            source: answerByPostMessage ? window.opener : null,
         };
     }
 
-    /**
-     * @param {URL|Location} url
-     * @return {{origin:string, data:{id:number, status:string, result:*}}}
-     */
     public static receiveRedirectResponse(url: URL|Location): ResponseMessage|null {
         // Need referrer for origin check
         if (!document.referrer) return null;
@@ -87,8 +87,7 @@ export class UrlRpcEncoder {
         params.set('result', JSONUtils.stringify(result));
         params.set('id', state.id.toString());
 
-        // TODO: what if it already includes a query string
-        return `${state.returnURL}?${params.toString()}`;
+        return `${state.returnURL!}${new URL(state.returnURL!).search.length > 0 ? '&' : '?'}${params.toString()}`;
     }
 
     public static prepareRedirectInvocation(targetURL: string, id: number,

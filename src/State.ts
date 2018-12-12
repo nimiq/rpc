@@ -1,4 +1,4 @@
-import {PostMessage, RedirectRequest, ResponseStatus} from './Messages';
+import {PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
 import {UrlRpcEncoder} from './UrlRpcEncoder';
 export {ResponseStatus} from './Messages';
 
@@ -40,7 +40,8 @@ export class State {
 
         this._origin = message.origin;
         this._id = message.data.id;
-        this._postMessage = 'source' in message && !('returnURL' in message);
+        this._postMessage = 'source' in message
+                        && !('returnURL' in message && message.returnURL !== POSTMESSAGE_RETURN_URL);
         this._returnURL = 'returnURL' in message ? message.returnURL : null;
         this._data = message.data;
         this._source = 'source' in message ? message.source : null;
@@ -76,8 +77,10 @@ export class State {
                 : { message: result };
         }
 
+        // TODO: Clear waiting request storage?
+
         if (this._postMessage) {
-            // Send via postMessage (e.g., popup)
+            // Send via postMessage (e.g., popup or url-encoded popup)
 
             let target;
             // If source is given, choose accordingly

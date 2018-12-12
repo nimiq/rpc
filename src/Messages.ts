@@ -23,9 +23,12 @@ export interface RedirectRequest {
         args: any[],
     };
     returnURL: string;
+    source: MessagePort|Window|ServiceWorker|string|null;
 }
 
 export enum ResponseStatus {
     OK = 'ok',
     ERROR = 'error',
 }
+
+export const POSTMESSAGE_RETURN_URL = '<postMessage>';

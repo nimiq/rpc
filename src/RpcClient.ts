@@ -43,7 +43,7 @@ export abstract class RpcClient {
         const state = this._waitingRequests.getState(data.id);
 
         if (callback) {
-            this._waitingRequests.remove(data.id);
+            // this._waitingRequests.remove(data.id);
 
             console.debug('RpcClient RECEIVE', data);
 
@@ -127,13 +127,11 @@ export class PostMessageRpcClient extends RpcClient {
 
     public close() {
         window.removeEventListener('message', this._receiveListener);
+        this._connected = false;
     }
 
     private _connect() {
         return new Promise((resolve, reject) => {
-            /**
-             * @param {MessageEvent} message
-             */
             const connectedListener = (message: MessageEvent) => {
                 const { source, origin, data } = message;
                 if (source !== this._target
@@ -207,7 +205,7 @@ export class RedirectRpcClient extends RpcClient {
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
-        } else {
+        } else if (!UrlRpcEncoder.receiveRedirectCommand(window.location)) {
             this._rejectOnBack();
         }
     }
@@ -240,7 +238,7 @@ export class RedirectRpcClient extends RpcClient {
             const state = this._waitingRequests.getState(id);
 
             if (callback) {
-                this._waitingRequests.remove(id);
+                // this._waitingRequests.remove(id);
                 console.debug('RpcClient BACK');
                 const error = new Error('Request aborted');
                 callback.reject(error, id, state);
