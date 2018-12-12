@@ -201,7 +201,7 @@ export class ReceiveOnlyPostMessageRpcClient extends PostMessageRpcClient {
         this._requestId = requestId;
     }
 
-    public async listenFor(command: string,): Promise<any> {
+    public async listenFor(command: string): Promise<any> {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
         return new Promise<any>((resolve, reject) => {
