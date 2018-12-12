@@ -54,7 +54,7 @@ export abstract class RpcClient {
                 if (data.result.stack) {
                     error.stack = data.result.stack;
                 }
-                if(data.result.name) {
+                if (data.result.name) {
                     error.name = data.result.name;
                 }
                 callback.reject(error, data.id, state);
@@ -146,7 +146,7 @@ export class PostMessageRpcClient extends RpcClient {
                 if (data.result.stack) {
                     const error = new Error(data.result.message);
                     error.stack = data.result.stack;
-                    if(data.result.name) {
+                    if (data.result.name) {
                         error.name = data.result.name;
                     }
                     console.error(error);
