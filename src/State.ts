@@ -1,5 +1,6 @@
 import {PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
 import {UrlRpcEncoder} from './UrlRpcEncoder';
+import {JSONUtils} from './JSONUtils';
 export {ResponseStatus} from './Messages';
 
 export class State {
@@ -25,7 +26,7 @@ export class State {
     }
 
     public static fromJSON(json: string) {
-        const obj = JSON.parse(json);
+        const obj = JSONUtils.parse(json);
         return new State(obj);
     }
     private readonly _origin: string;
@@ -64,7 +65,7 @@ export class State {
         } else {
             obj.returnURL = this._returnURL;
         }
-        return JSON.stringify(obj);
+        return JSONUtils.stringify(obj);
     }
 
     public reply(status: ResponseStatus, result: any) {
