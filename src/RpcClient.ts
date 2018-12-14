@@ -80,8 +80,8 @@ export abstract class RpcClient {
 
 export class PostMessageRpcClient extends RpcClient {
     protected readonly _target: Window;
-    protected _connected: boolean;
-    private readonly _receiveListener: (message: MessageEvent) => any;
+    private _connected: boolean;
+    protected readonly _receiveListener: (message: MessageEvent) => any;
 
     constructor(targetWindow: Window, allowedOrigin: string) {
         super(allowedOrigin);
@@ -201,9 +201,11 @@ export class ReceiveOnlyPostMessageRpcClient extends PostMessageRpcClient {
         this._requestId = requestId;
     }
 
-    public async listenFor(command: string): Promise<any> {
-        if (!this._connected) throw new Error('Client is not connected, call init first');
+    public async init() {
+        window.addEventListener('message', this._receiveListener);
+    }
 
+    public async listenFor(command: string): Promise<any> {
         return new Promise<any>((resolve, reject) => {
             // Store the request resolvers
             this._responseHandlers.set(this._requestId, { resolve, reject });
