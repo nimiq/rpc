@@ -44,6 +44,7 @@ export abstract class RpcClient {
 
         if (callback) {
             this._waitingRequests.remove(data.id);
+            this._responseHandlers.delete(data.id);
 
             console.debug('RpcClient RECEIVE', data);
 
@@ -110,10 +111,11 @@ export class PostMessageRpcClient extends RpcClient {
             this._responseHandlers.set(obj.id, { resolve, reject });
             this._waitingRequests.add(obj.id, command);
 
-            // Periodically check if recepient window is still open
+            // Periodically check if recipient window is still open
             const checkIfServerWasClosed = () => {
                 if (this._target.closed) {
                     reject(new Error('Window was closed'));
+                    return;
                 }
                 setTimeout(checkIfServerWasClosed, 500);
             };
@@ -185,12 +187,10 @@ export class PostMessageRpcClient extends RpcClient {
                     console.error(`postMessage failed: ${e}`);
                 }
 
-                // @ts-ignore
-                connectTimer = setTimeout(tryToConnect, 1000);
+                connectTimer = window.setTimeout(tryToConnect, 1000);
             };
 
-            // @ts-ignore
-            connectTimer = setTimeout(tryToConnect, 100);
+            connectTimer = window.setTimeout(tryToConnect, 100);
         });
     }
 }
@@ -212,7 +212,7 @@ export class RedirectRpcClient extends RpcClient {
         }
     }
 
-    /* tslint:disable:no-empty */
+    /* tslint:disable-next-line:no-empty */
     public close() { }
 
     public call(returnURL: string, command: string, ...args: any[]) {
@@ -241,6 +241,7 @@ export class RedirectRpcClient extends RpcClient {
 
             if (callback) {
                 this._waitingRequests.remove(id);
+                this._responseHandlers.delete(id);
                 console.debug('RpcClient BACK');
                 const error = new Error('Request aborted');
                 callback.reject(error, id, state);
