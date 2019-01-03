@@ -20,7 +20,8 @@ export class UrlRpcEncoder {
         // Ignore messages without a valid return path
         if (!params.has('returnURL')) return null;
 
-        const answerByPostMessage = params.get('returnURL') === POSTMESSAGE_RETURN_URL && window.opener;
+        const answerByPostMessage = params.get('returnURL') === POSTMESSAGE_RETURN_URL
+                                    && (window.opener || window.parent);
         if (!answerByPostMessage) {
             // Only allow returning to same origin
             const returnURL = new URL(params.get('returnURL')!);
@@ -46,7 +47,7 @@ export class UrlRpcEncoder {
                 args,
             },
             returnURL: params.get('returnURL')!,
-            source: answerByPostMessage ? window.opener : null,
+            source: answerByPostMessage ? (window.opener || window.parent) : null,
         };
     }
 

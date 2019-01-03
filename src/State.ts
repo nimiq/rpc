@@ -1,7 +1,7 @@
 import {PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
 import {UrlRpcEncoder} from './UrlRpcEncoder';
-import {JSONUtils} from './JSONUtils';
 export {ResponseStatus} from './Messages';
+import {JSONUtils} from './JSONUtils';
 
 export class State {
 
@@ -13,7 +13,7 @@ export class State {
         return this._origin;
     }
 
-    get data(): any {
+    get data() {
         return this._data;
     }
 
@@ -33,7 +33,7 @@ export class State {
     private readonly _id: number;
     private readonly _postMessage: boolean;
     private readonly _returnURL: string | null;
-    private readonly _data: object;
+    private readonly _data: {command: string, args: any[], id: number, persistInUrl?: boolean};
     private readonly _source: MessagePort|Window|ServiceWorker|string|null;
 
     constructor(message: MessageEvent|RedirectRequest|PostMessage) {
@@ -81,7 +81,7 @@ export class State {
         // TODO: Clear waiting request storage?
 
         if (this._postMessage) {
-            // Send via postMessage (e.g., popup or url-encoded popup)
+            // Send via postMessage (e.g., popup or url-persisted popup)
 
             let target;
             // If source is given, choose accordingly
@@ -106,5 +106,15 @@ export class State {
             // Send via top-level navigation
             window.location.href = UrlRpcEncoder.prepareRedirectReply(this, status, result);
         }
+    }
+
+    public toRequestUrl(baseUrl = '') {
+        return UrlRpcEncoder.prepareRedirectInvocation(
+            baseUrl,
+            this.id,
+            this.returnURL || POSTMESSAGE_RETURN_URL,
+            this.data.command,
+            this.data.args,
+        );
     }
 }

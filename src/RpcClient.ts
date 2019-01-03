@@ -10,13 +10,15 @@ export interface ResponseHandler {
 
 export abstract class RpcClient {
     protected readonly _allowedOrigin: string;
-    protected _waitingRequests: RequestIdStorage;
-    protected _responseHandlers: Map<string | number, ResponseHandler>;
+    protected readonly _waitingRequests: RequestIdStorage;
+    protected readonly _responseHandlers: Map<string | number, ResponseHandler>;
+    protected readonly _preserveRequests: boolean;
 
     protected constructor(allowedOrigin: string, storeState: boolean = false) {
         this._allowedOrigin = allowedOrigin;
         this._waitingRequests = new RequestIdStorage(storeState);
         this._responseHandlers = new Map();
+        this._preserveRequests = false;
     }
 
     public onResponse(command: string,
@@ -43,7 +45,7 @@ export abstract class RpcClient {
         const state = this._waitingRequests.getState(data.id);
 
         if (callback) {
-            // this._waitingRequests.remove(data.id);
+            if (!this._preserveRequests) this._waitingRequests.remove(data.id);
 
             console.debug('RpcClient RECEIVE', data);
 
@@ -79,9 +81,9 @@ export abstract class RpcClient {
 }
 
 export class PostMessageRpcClient extends RpcClient {
-    protected readonly _target: Window;
+    private readonly _target: Window;
+    private readonly _receiveListener: (message: MessageEvent) => any;
     private _connected: boolean;
-    protected readonly _receiveListener: (message: MessageEvent) => any;
 
     constructor(targetWindow: Window, allowedOrigin: string) {
         super(allowedOrigin);
@@ -97,18 +99,30 @@ export class PostMessageRpcClient extends RpcClient {
     }
 
     public async call(command: string, ...args: any[]): Promise<any> {
+        return this._call({
+            command,
+            args,
+            id: RandomUtils.generateRandomId(),
+        });
+    }
+
+    public async callAndPersist(command: string, ...args: any[]): Promise<any> {
+        return this._call({
+            command,
+            args,
+            id: RandomUtils.generateRandomId(),
+            persistInUrl: true,
+        });
+    }
+
+    public async _call(obj: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
         return new Promise<any>((resolve, reject) => {
-            const obj = {
-                command,
-                args,
-                id: RandomUtils.generateRandomId(),
-            };
 
             // Store the request resolvers
             this._responseHandlers.set(obj.id, { resolve, reject });
-            this._waitingRequests.add(obj.id, command);
+            this._waitingRequests.add(obj.id, obj.command);
 
             // Periodically check if recepient window is still open
             const checkIfServerWasClosed = () => {
@@ -119,7 +133,7 @@ export class PostMessageRpcClient extends RpcClient {
             };
             setTimeout(checkIfServerWasClosed, 500);
 
-            console.debug('RpcClient REQUEST', command, args);
+            console.debug('RpcClient REQUEST', obj.command, obj.args);
 
             this._target.postMessage(obj, this._allowedOrigin);
         });
@@ -184,7 +198,7 @@ export class PostMessageRpcClient extends RpcClient {
                 }
 
                 // @ts-ignore
-                connectTimer = setTimeout(tryToConnect, 1000);
+                connectTimer = setTimeout(tryToConnect, 100);
             };
 
             // @ts-ignore
@@ -193,48 +207,27 @@ export class PostMessageRpcClient extends RpcClient {
     }
 }
 
-export class ReceiveOnlyPostMessageRpcClient extends PostMessageRpcClient {
-    private _requestId: number;
-
-    constructor(targetWindow: Window, allowedOrigin: string, requestId: number) {
-        super(targetWindow, allowedOrigin);
-        this._requestId = requestId;
-    }
-
-    public async init() {
-        window.addEventListener('message', this._receiveListener);
-    }
-
-    public async listenFor(command: string): Promise<any> {
-        return new Promise<any>((resolve, reject) => {
-            // Store the request resolvers
-            this._responseHandlers.set(this._requestId, { resolve, reject });
-            this._waitingRequests.add(this._requestId, command);
-
-            // Periodically check if recepient window is still open
-            const checkIfServerWasClosed = () => {
-                if (this._target.closed) {
-                    reject(new Error('Window was closed'));
-                }
-                setTimeout(checkIfServerWasClosed, 500);
-            };
-            setTimeout(checkIfServerWasClosed, 500);
-        });
-    }
-}
-
 export class RedirectRpcClient extends RpcClient {
+    protected readonly _preserveRequests: boolean;
     private readonly _target: string;
 
-    constructor(targetURL: string, allowedOrigin: string) {
+    constructor(targetURL: string, allowedOrigin: string, preserveRequests = false) {
         super(allowedOrigin, /*storeState*/ true);
         this._target = targetURL;
+        this._preserveRequests = preserveRequests;
     }
 
     public async init() {
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
+
+        // The URL the user goes back to in the browser history (the page
+        // that this RpcClient is inited on) may itself have been a
+        // URL-encoded RPC request. Thus before triggering a potential
+        // rejection of the called request, we make sure that there is
+        // no RPC request in the URL, to be able to re-start the actual
+        // request that the user goes back to.
         } else if (!UrlRpcEncoder.receiveRedirectCommand(window.location)) {
             this._rejectOnBack();
         }
@@ -268,7 +261,7 @@ export class RedirectRpcClient extends RpcClient {
             const state = this._waitingRequests.getState(id);
 
             if (callback) {
-                // this._waitingRequests.remove(id);
+                if (!this._preserveRequests) this._waitingRequests.remove(id);
                 console.debug('RpcClient BACK');
                 const error = new Error('Request aborted');
                 callback.reject(error, id, state);
