@@ -129,7 +129,7 @@ export class PostMessageRpcClient extends RpcClient {
                 if (this._target.closed) {
                     reject(new Error('Window was closed'));
                 }
-                setTimeout(checkIfServerWasClosed, 500);
+                else setTimeout(checkIfServerWasClosed, 500);
             };
             setTimeout(checkIfServerWasClosed, 500);
 
