@@ -83,18 +83,20 @@ export class UrlRpcEncoder {
     }
 
     public static prepareRedirectReply(state: State, status: ResponseStatus, result: any): string {
-        const params = new URLSearchParams();
+        const returnUrl = new URL(state.returnURL!);
+        const params = returnUrl.searchParams;
         params.set('status', status);
         params.set('result', JSONUtils.stringify(result));
         params.set('id', state.id.toString());
 
-        return `${state.returnURL!}${new URL(state.returnURL!).search.length > 0 ? '&' : '?'}${params.toString()}`;
+        return `${returnUrl.origin}${returnUrl.pathname}?${params.toString()}`;
     }
 
     public static prepareRedirectInvocation(targetURL: string, id: number,
                                             returnURL: string, command: string,
                                             args: any[]): string {
-        const params = new URLSearchParams();
+        const targetUrl = new URL(targetURL);
+        const params = targetUrl.searchParams;
         params.set('id', id.toString());
         params.set('returnURL', returnURL);
         params.set('command', command);
@@ -103,7 +105,6 @@ export class UrlRpcEncoder {
             params.set('args', JSONUtils.stringify(args));
         }
 
-        // TODO: what if it already includes a query string
-        return `${targetURL}?${params.toString()}`;
+        return `${targetUrl.origin}${targetUrl.pathname}?${params.toString()}`;
     }
 }
