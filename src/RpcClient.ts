@@ -45,7 +45,10 @@ export abstract class RpcClient {
         const state = this._waitingRequests.getState(data.id);
 
         if (callback) {
-            if (!this._preserveRequests) this._waitingRequests.remove(data.id);
+            if (!this._preserveRequests) {
+                this._waitingRequests.remove(data.id);
+                this._responseHandlers.delete(data.id);
+            }
 
             console.debug('RpcClient RECEIVE', data);
 
@@ -124,12 +127,13 @@ export class PostMessageRpcClient extends RpcClient {
             this._responseHandlers.set(obj.id, { resolve, reject });
             this._waitingRequests.add(obj.id, obj.command);
 
-            // Periodically check if recepient window is still open
+            // Periodically check if recipient window is still open
             const checkIfServerWasClosed = () => {
                 if (this._target.closed) {
                     reject(new Error('Window was closed'));
+                    return;
                 }
-                else setTimeout(checkIfServerWasClosed, 500);
+                setTimeout(checkIfServerWasClosed, 500);
             };
             setTimeout(checkIfServerWasClosed, 500);
 
@@ -183,7 +187,7 @@ export class PostMessageRpcClient extends RpcClient {
             }, 10 * 1000);
 
             /**
-             * Send 'ping' command every second, until cancelled
+             * Send 'ping' command every 100ms, until cancelled
              */
             const tryToConnect = () => {
                 if (this._connected) {
@@ -197,12 +201,10 @@ export class PostMessageRpcClient extends RpcClient {
                     console.error(`postMessage failed: ${e}`);
                 }
 
-                // @ts-ignore
-                connectTimer = setTimeout(tryToConnect, 100);
+                connectTimer = window.setTimeout(tryToConnect, 100);
             };
 
-            // @ts-ignore
-            connectTimer = setTimeout(tryToConnect, 100);
+            connectTimer = window.setTimeout(tryToConnect, 100);
         });
     }
 }
@@ -233,7 +235,7 @@ export class RedirectRpcClient extends RpcClient {
         }
     }
 
-    /* tslint:disable:no-empty */
+    /* tslint:disable-next-line:no-empty */
     public close() { }
 
     public call(returnURL: string, command: string, ...args: any[]) {
@@ -261,7 +263,10 @@ export class RedirectRpcClient extends RpcClient {
             const state = this._waitingRequests.getState(id);
 
             if (callback) {
-                if (!this._preserveRequests) this._waitingRequests.remove(id);
+                if (!this._preserveRequests) {
+                    this._waitingRequests.remove(id);
+                    this._responseHandlers.delete(id);
+                }
                 console.debug('RpcClient BACK');
                 const error = new Error('Request aborted');
                 callback.reject(error, id, state);
