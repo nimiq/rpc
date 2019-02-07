@@ -118,14 +118,14 @@ export class PostMessageRpcClient extends RpcClient {
         });
     }
 
-    public async _call(obj: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
+    private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
         return new Promise<any>((resolve, reject) => {
 
             // Store the request resolvers
-            this._responseHandlers.set(obj.id, { resolve, reject });
-            this._waitingRequests.add(obj.id, obj.command);
+            this._responseHandlers.set(request.id, { resolve, reject });
+            this._waitingRequests.add(request.id, request.command);
 
             // Periodically check if recipient window is still open
             const checkIfServerWasClosed = () => {
@@ -137,9 +137,9 @@ export class PostMessageRpcClient extends RpcClient {
             };
             setTimeout(checkIfServerWasClosed, 500);
 
-            console.debug('RpcClient REQUEST', obj.command, obj.args);
+            console.debug('RpcClient REQUEST', request.command, request.args);
 
-            this._target.postMessage(obj, this._allowedOrigin);
+            this._target.postMessage(request, this._allowedOrigin);
         });
     }
 
