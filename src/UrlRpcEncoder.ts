@@ -89,7 +89,7 @@ export class UrlRpcEncoder {
         params.set('result', JSONUtils.stringify(result));
         params.set('id', state.id.toString());
 
-        return `${returnUrl.origin}${returnUrl.pathname}?${params.toString()}`;
+        return returnUrl.href;
     }
 
     public static prepareRedirectInvocation(targetURL: string, id: number,
@@ -105,6 +105,6 @@ export class UrlRpcEncoder {
             params.set('args', JSONUtils.stringify(args));
         }
 
-        return `${targetUrl.origin}${targetUrl.pathname}?${params.toString()}`;
+        return targetUrl.href;
     }
 }
