@@ -213,7 +213,7 @@ export class RedirectRpcClient extends RpcClient {
     protected readonly _preserveRequests: boolean;
     private readonly _target: string;
 
-    constructor(targetURL: string, allowedOrigin: string, preserveRequests = false) {
+    constructor(targetURL: string, allowedOrigin: string, preserveRequests = true) {
         super(allowedOrigin, /*storeState*/ true);
         this._target = targetURL;
         this._preserveRequests = preserveRequests;
