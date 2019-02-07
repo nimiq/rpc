@@ -78,6 +78,14 @@ export class RpcServer {
 
             console.debug('RpcServer ACCEPT', state.data);
 
+            if (state.data.persistInUrl && window.history && window.history.replaceState) {
+                window.history.replaceState(
+                    history.state,
+                    document.title,
+                    state.toRequestUrl(`${window.location.origin}${window.location.pathname}`),
+                );
+            }
+
             // Call method
             const result = requestedMethod(state, ...args);
 

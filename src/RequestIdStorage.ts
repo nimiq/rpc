@@ -16,7 +16,7 @@ export class RequestIdStorage {
     private _validIds: Map<number|string, [string, string|null]>;
 
     /**
-     * @param {boolean} [storeState=true] Whether to store state in sessionStorage
+     * @param storeState Whether to store state in sessionStorage
      */
     constructor(storeState = true) {
         this._store = storeState ? window.sessionStorage : null;

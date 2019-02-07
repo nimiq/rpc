@@ -1,6 +1,7 @@
-import {PostMessage, RedirectRequest, ResponseStatus} from './Messages';
+import {PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
 import {UrlRpcEncoder} from './UrlRpcEncoder';
 export {ResponseStatus} from './Messages';
+import {JSONUtils} from './JSONUtils';
 
 export class State {
 
@@ -12,7 +13,7 @@ export class State {
         return this._origin;
     }
 
-    get data(): any {
+    get data() {
         return this._data;
     }
 
@@ -25,14 +26,14 @@ export class State {
     }
 
     public static fromJSON(json: string) {
-        const obj = JSON.parse(json);
+        const obj = JSONUtils.parse(json);
         return new State(obj);
     }
     private readonly _origin: string;
     private readonly _id: number;
     private readonly _postMessage: boolean;
     private readonly _returnURL: string | null;
-    private readonly _data: object;
+    private readonly _data: {command: string, args: any[], id: number, persistInUrl?: boolean};
     private readonly _source: MessagePort|Window|ServiceWorker|string|null;
 
     constructor(message: MessageEvent|RedirectRequest|PostMessage) {
@@ -40,7 +41,8 @@ export class State {
 
         this._origin = message.origin;
         this._id = message.data.id;
-        this._postMessage = 'source' in message && !('returnURL' in message);
+        this._postMessage = 'source' in message
+                        && !('returnURL' in message && message.returnURL !== POSTMESSAGE_RETURN_URL);
         this._returnURL = 'returnURL' in message ? message.returnURL : null;
         this._data = message.data;
         this._source = 'source' in message ? message.source : null;
@@ -63,7 +65,7 @@ export class State {
         } else {
             obj.returnURL = this._returnURL;
         }
-        return JSON.stringify(obj);
+        return JSONUtils.stringify(obj);
     }
 
     public reply(status: ResponseStatus, result: any) {
@@ -76,8 +78,10 @@ export class State {
                 : { message: result };
         }
 
+        // TODO: Clear waiting request storage?
+
         if (this._postMessage) {
-            // Send via postMessage (e.g., popup)
+            // Send via postMessage (e.g., popup or url-persisted popup)
 
             let target;
             // If source is given, choose accordingly
@@ -102,5 +106,15 @@ export class State {
             // Send via top-level navigation
             window.location.href = UrlRpcEncoder.prepareRedirectReply(this, status, result);
         }
+    }
+
+    public toRequestUrl(baseUrl = '') {
+        return UrlRpcEncoder.prepareRedirectInvocation(
+            baseUrl,
+            this.id,
+            this.returnURL || POSTMESSAGE_RETURN_URL,
+            this.data.command,
+            this.data.args,
+        );
     }
 }

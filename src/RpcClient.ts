@@ -10,13 +10,15 @@ export interface ResponseHandler {
 
 export abstract class RpcClient {
     protected readonly _allowedOrigin: string;
-    protected _waitingRequests: RequestIdStorage;
-    protected _responseHandlers: Map<string | number, ResponseHandler>;
+    protected readonly _waitingRequests: RequestIdStorage;
+    protected readonly _responseHandlers: Map<string | number, ResponseHandler>;
+    protected readonly _preserveRequests: boolean;
 
     protected constructor(allowedOrigin: string, storeState: boolean = false) {
         this._allowedOrigin = allowedOrigin;
         this._waitingRequests = new RequestIdStorage(storeState);
         this._responseHandlers = new Map();
+        this._preserveRequests = false;
     }
 
     public onResponse(command: string,
@@ -43,8 +45,10 @@ export abstract class RpcClient {
         const state = this._waitingRequests.getState(data.id);
 
         if (callback) {
-            this._waitingRequests.remove(data.id);
-            this._responseHandlers.delete(data.id);
+            if (!this._preserveRequests) {
+                this._waitingRequests.remove(data.id);
+                this._responseHandlers.delete(data.id);
+            }
 
             console.debug('RpcClient RECEIVE', data);
 
@@ -98,18 +102,30 @@ export class PostMessageRpcClient extends RpcClient {
     }
 
     public async call(command: string, ...args: any[]): Promise<any> {
+        return this._call({
+            command,
+            args,
+            id: RandomUtils.generateRandomId(),
+        });
+    }
+
+    public async callAndPersist(command: string, ...args: any[]): Promise<any> {
+        return this._call({
+            command,
+            args,
+            id: RandomUtils.generateRandomId(),
+            persistInUrl: true,
+        });
+    }
+
+    private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
         return new Promise<any>((resolve, reject) => {
-            const obj = {
-                command,
-                args,
-                id: RandomUtils.generateRandomId(),
-            };
 
             // Store the request resolvers
-            this._responseHandlers.set(obj.id, { resolve, reject });
-            this._waitingRequests.add(obj.id, command);
+            this._responseHandlers.set(request.id, { resolve, reject });
+            this._waitingRequests.add(request.id, request.command);
 
             // Periodically check if recipient window is still open
             const checkIfServerWasClosed = () => {
@@ -121,21 +137,19 @@ export class PostMessageRpcClient extends RpcClient {
             };
             setTimeout(checkIfServerWasClosed, 500);
 
-            console.debug('RpcClient REQUEST', command, args);
+            console.debug('RpcClient REQUEST', request.command, request.args);
 
-            this._target.postMessage(obj, this._allowedOrigin);
+            this._target.postMessage(request, this._allowedOrigin);
         });
     }
 
     public close() {
         window.removeEventListener('message', this._receiveListener);
+        this._connected = false;
     }
 
     private _connect() {
         return new Promise((resolve, reject) => {
-            /**
-             * @param {MessageEvent} message
-             */
             const connectedListener = (message: MessageEvent) => {
                 const { source, origin, data } = message;
                 if (source !== this._target
@@ -173,7 +187,7 @@ export class PostMessageRpcClient extends RpcClient {
             }, 10 * 1000);
 
             /**
-             * Send 'ping' command every second, until cancelled
+             * Send 'ping' command every 100ms, until cancelled
              */
             const tryToConnect = () => {
                 if (this._connected) {
@@ -187,7 +201,7 @@ export class PostMessageRpcClient extends RpcClient {
                     console.error(`postMessage failed: ${e}`);
                 }
 
-                connectTimer = window.setTimeout(tryToConnect, 1000);
+                connectTimer = window.setTimeout(tryToConnect, 100);
             };
 
             connectTimer = window.setTimeout(tryToConnect, 100);
@@ -196,18 +210,27 @@ export class PostMessageRpcClient extends RpcClient {
 }
 
 export class RedirectRpcClient extends RpcClient {
+    protected readonly _preserveRequests: boolean;
     private readonly _target: string;
 
-    constructor(targetURL: string, allowedOrigin: string) {
+    constructor(targetURL: string, allowedOrigin: string, preserveRequests = true) {
         super(allowedOrigin, /*storeState*/ true);
         this._target = targetURL;
+        this._preserveRequests = preserveRequests;
     }
 
     public async init() {
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
-        } else {
+
+        // The URL the user goes back to in the browser history (the page
+        // that this RpcClient is inited on) may itself have been a
+        // URL-encoded RPC request. Thus before triggering a potential
+        // rejection of the called request, we make sure that there is
+        // no RPC request in the URL, to be able to re-start the actual
+        // request that the user goes back to.
+        } else if (!UrlRpcEncoder.receiveRedirectCommand(window.location)) {
             this._rejectOnBack();
         }
     }
@@ -240,8 +263,10 @@ export class RedirectRpcClient extends RpcClient {
             const state = this._waitingRequests.getState(id);
 
             if (callback) {
-                this._waitingRequests.remove(id);
-                this._responseHandlers.delete(id);
+                if (!this._preserveRequests) {
+                    this._waitingRequests.remove(id);
+                    this._responseHandlers.delete(id);
+                }
                 console.debug('RpcClient BACK');
                 const error = new Error('Request aborted');
                 callback.reject(error, id, state);
