@@ -121,6 +121,14 @@ export class PostMessageRpcClient extends RpcClient {
         });
     }
 
+    public close() {
+        // Clean up old requests and disconnect. Note that until the popup get's closed by the user
+        // it's possible to connect again though by calling init.
+        window.removeEventListener('message', this._receiveListener);
+        this._cleanUp();
+        this._connected = false;
+    }
+
     private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
@@ -145,14 +153,6 @@ export class PostMessageRpcClient extends RpcClient {
 
             this._target!.postMessage(request, this._allowedOrigin);
         });
-    }
-
-    public close() {
-        // Clean up old requests and disconnect. Note that until the popup get's closed by the user
-        // it's possible to connect again though by calling init.
-        window.removeEventListener('message', this._receiveListener);
-        this._cleanUp();
-        this._connected = false;
     }
 
     private _connect() {
