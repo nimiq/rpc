@@ -179,19 +179,17 @@ export class PostMessageRpcClient extends RpcClient {
 
             window.addEventListener('message', connectedListener);
 
-            let connectTimer = 0;
-            const timeoutTimer = setTimeout(() => {
-                window.removeEventListener('message', connectedListener);
-                clearTimeout(connectTimer);
-                reject(new Error('Connection timeout'));
-            }, 10 * 1000);
-
             /**
              * Send 'ping' command every 100ms, until cancelled
              */
             const tryToConnect = () => {
                 if (this._connected) {
-                    clearTimeout(timeoutTimer);
+                    return;
+                }
+
+                if (this._target.closed) {
+                    window.removeEventListener('message', connectedListener);
+                    reject(new Error('Window was closed'));
                     return;
                 }
 
@@ -201,10 +199,10 @@ export class PostMessageRpcClient extends RpcClient {
                     console.error(`postMessage failed: ${e}`);
                 }
 
-                connectTimer = window.setTimeout(tryToConnect, 100);
+                window.setTimeout(tryToConnect, 100);
             };
 
-            connectTimer = window.setTimeout(tryToConnect, 100);
+            window.setTimeout(tryToConnect, 100);
         });
     }
 }
