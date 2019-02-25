@@ -84,7 +84,7 @@ export abstract class RpcClient {
 }
 
 export class PostMessageRpcClient extends RpcClient {
-    private readonly _target: Window;
+    private _target: Window | null;
     private readonly _receiveListener: (message: MessageEvent) => any;
     private _connected: boolean;
 
@@ -97,6 +97,9 @@ export class PostMessageRpcClient extends RpcClient {
     }
 
     public async init() {
+        if (this._connected) {
+            return;
+        }
         await this._connect();
         window.addEventListener('message', this._receiveListener);
     }
@@ -122,29 +125,33 @@ export class PostMessageRpcClient extends RpcClient {
         if (!this._connected) throw new Error('Client is not connected, call init first');
 
         return new Promise<any>((resolve, reject) => {
-
             // Store the request resolvers
             this._responseHandlers.set(request.id, { resolve, reject });
             this._waitingRequests.add(request.id, request.command);
 
             // Periodically check if recipient window is still open
             const checkIfServerWasClosed = () => {
-                if (this._target.closed) {
+                if (!this._target || this._target.closed) {
+                    this._cleanUp();
                     reject(new Error('Window was closed'));
-                    return;
+                    return true;
                 }
                 setTimeout(checkIfServerWasClosed, 500);
+                return false;
             };
-            setTimeout(checkIfServerWasClosed, 500);
+            if (checkIfServerWasClosed()) return;
 
             console.debug('RpcClient REQUEST', request.command, request.args);
 
-            this._target.postMessage(request, this._allowedOrigin);
+            this._target!.postMessage(request, this._allowedOrigin);
         });
     }
 
     public close() {
+        // Clean up old requests and disconnect. Note that until the popup get's closed by the user
+        // it's possible to connect again though by calling init.
         window.removeEventListener('message', this._receiveListener);
+        this._cleanUp();
         this._connected = false;
     }
 
@@ -187,8 +194,9 @@ export class PostMessageRpcClient extends RpcClient {
                     return;
                 }
 
-                if (this._target.closed) {
+                if (!this._target || this._target.closed) {
                     window.removeEventListener('message', connectedListener);
+                    this._cleanUp();
                     reject(new Error('Window was closed'));
                     return;
                 }
@@ -204,6 +212,15 @@ export class PostMessageRpcClient extends RpcClient {
 
             window.setTimeout(tryToConnect, 100);
         });
+    }
+
+    private _cleanUp() {
+        this._waitingRequests.clear();
+        this._responseHandlers.clear();
+        if (this._target && this._target.closed) {
+            this._target = null;
+            window.removeEventListener('message', this._receiveListener);
+        }
     }
 }
 
