@@ -83,21 +83,21 @@ export abstract class RpcClient {
     }
 }
 
-export class PostMessageRpcClient extends RpcClient {
+class PostMessageRpcClient extends RpcClient {
     private _target: Window | null;
     private readonly _receiveListener: (message: MessageEvent) => any;
-    private _connected: boolean;
+    private _connectionState: PostMessageRpcClient.ConnectionState;
 
     constructor(targetWindow: Window, allowedOrigin: string) {
         super(allowedOrigin);
         this._target = targetWindow;
-        this._connected = false;
+        this._connectionState = PostMessageRpcClient.ConnectionState.DISCONNECTED;
 
         this._receiveListener = this._receive.bind(this);
     }
 
     public async init() {
-        if (this._connected) {
+        if (this._connectionState === PostMessageRpcClient.ConnectionState.CONNECTED) {
             return;
         }
         await this._connect();
@@ -124,7 +124,7 @@ export class PostMessageRpcClient extends RpcClient {
     public close() {
         // Clean up old requests and disconnect. Note that until the popup get's closed by the user
         // it's possible to connect again though by calling init.
-        this._connected = false;
+        this._connectionState = PostMessageRpcClient.ConnectionState.DISCONNECTED;
         window.removeEventListener('message', this._receiveListener);
         for (const [id, { reject }] of this._responseHandlers) {
             const state = this._waitingRequests.getState(id);
@@ -139,7 +139,8 @@ export class PostMessageRpcClient extends RpcClient {
     }
 
     private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
-        if (!this._connected && this._target && !this._target.closed) {
+        if (this._connectionState !== PostMessageRpcClient.ConnectionState.CONNECTED
+            && this._target && !this._target.closed) {
             throw new Error('Client is not connected, call init first');
         }
 
@@ -168,6 +169,8 @@ export class PostMessageRpcClient extends RpcClient {
     }
 
     private _connect() {
+        if (this._connectionState === PostMessageRpcClient.ConnectionState.CONNECTED) return;
+        this._connectionState = PostMessageRpcClient.ConnectionState.CONNECTING;
         return new Promise((resolve, reject) => {
             const connectedListener = (message: MessageEvent) => {
                 const { source, origin, data } = message;
@@ -189,7 +192,7 @@ export class PostMessageRpcClient extends RpcClient {
 
                 window.removeEventListener('message', connectedListener);
 
-                this._connected = true;
+                this._connectionState = PostMessageRpcClient.ConnectionState.CONNECTED;
 
                 console.log('RpcClient: Connection established');
                 window.addEventListener('message', this._receiveListener);
@@ -202,7 +205,11 @@ export class PostMessageRpcClient extends RpcClient {
              * Send 'ping' command every 100ms, until cancelled
              */
             const tryToConnect = () => {
-                if (this._connected) {
+                if (this._connectionState === PostMessageRpcClient.ConnectionState.CONNECTED) return;
+
+                if (this._connectionState === PostMessageRpcClient.ConnectionState.DISCONNECTED) {
+                    window.removeEventListener('message', connectedListener);
+                    reject(new Error('Connection was manually closed before being established'));
                     return;
                 }
 
@@ -227,6 +234,15 @@ export class PostMessageRpcClient extends RpcClient {
         });
     }
 }
+/* tslint:disable-next-line:no-namespace */
+namespace PostMessageRpcClient {
+    export const enum ConnectionState {
+        DISCONNECTED,
+        CONNECTING,
+        CONNECTED,
+    }
+}
+export { PostMessageRpcClient };
 
 export class RedirectRpcClient extends RpcClient {
     protected readonly _preserveRequests: boolean;
