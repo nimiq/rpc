@@ -124,13 +124,24 @@ export class PostMessageRpcClient extends RpcClient {
     public close() {
         // Clean up old requests and disconnect. Note that until the popup get's closed by the user
         // it's possible to connect again though by calling init.
-        window.removeEventListener('message', this._receiveListener);
-        this._cleanUp();
         this._connected = false;
+        window.removeEventListener('message', this._receiveListener);
+        for (const [id, { reject }] of this._responseHandlers) {
+            const state = this._waitingRequests.getState(id);
+            reject(
+                'Connection was closed',
+                typeof id === 'number' ? id : undefined,
+                state,
+            );
+        }
+        this._waitingRequests.clear();
+        this._responseHandlers.clear();
     }
 
     private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
-        if (!this._connected) throw new Error('Client is not connected, call init first');
+        if (!this._connected && this._target && !this._target.closed) {
+            throw new Error('Client is not connected, call init first');
+        }
 
         return new Promise<any>((resolve, reject) => {
             // Store the request resolvers
@@ -140,7 +151,8 @@ export class PostMessageRpcClient extends RpcClient {
             // Periodically check if recipient window is still open
             const checkIfServerWasClosed = () => {
                 if (!this._target || this._target.closed) {
-                    this._cleanUp();
+                    this._target = null;
+                    this.close();
                     reject(new Error('Window was closed'));
                     return true;
                 }
@@ -196,7 +208,8 @@ export class PostMessageRpcClient extends RpcClient {
 
                 if (!this._target || this._target.closed) {
                     window.removeEventListener('message', connectedListener);
-                    this._cleanUp();
+                    this._target = null;
+                    this.close();
                     reject(new Error('Window was closed'));
                     return;
                 }
@@ -212,15 +225,6 @@ export class PostMessageRpcClient extends RpcClient {
 
             window.setTimeout(tryToConnect, 100);
         });
-    }
-
-    private _cleanUp() {
-        this._waitingRequests.clear();
-        this._responseHandlers.clear();
-        if (this._target && this._target.closed) {
-            this._target = null;
-            window.removeEventListener('message', this._receiveListener);
-        }
     }
 }
 
