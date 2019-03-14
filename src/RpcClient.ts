@@ -87,6 +87,7 @@ class PostMessageRpcClient extends RpcClient {
     private _target: Window | null;
     private readonly _receiveListener: (message: MessageEvent) => any;
     private _connectionState: PostMessageRpcClient.ConnectionState;
+    private _serverCloseCheckInterval: number = -1;
 
     constructor(targetWindow: Window, allowedOrigin: string) {
         super(allowedOrigin);
@@ -102,6 +103,8 @@ class PostMessageRpcClient extends RpcClient {
         }
         await this._connect();
         window.addEventListener('message', this._receiveListener);
+        if (this._serverCloseCheckInterval !== -1) return;
+        this._serverCloseCheckInterval = window.setInterval(() => this._checkIfServerClosed(), 300);
     }
 
     public async call(command: string, ...args: any[]): Promise<any> {
@@ -126,6 +129,8 @@ class PostMessageRpcClient extends RpcClient {
         // it's possible to connect again though by calling init.
         this._connectionState = PostMessageRpcClient.ConnectionState.DISCONNECTED;
         window.removeEventListener('message', this._receiveListener);
+        window.clearInterval(this._serverCloseCheckInterval);
+        this._serverCloseCheckInterval = -1;
         for (const [id, { reject }] of this._responseHandlers) {
             const state = this._waitingRequests.getState(id);
             reject(
@@ -136,11 +141,15 @@ class PostMessageRpcClient extends RpcClient {
         }
         this._waitingRequests.clear();
         this._responseHandlers.clear();
+
+        if (this._target && this._target.closed) this._target = null;
     }
 
     private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
-        if (this._connectionState !== PostMessageRpcClient.ConnectionState.CONNECTED
-            && this._target && !this._target.closed) {
+        if (!this._target || this._target.closed) {
+            throw new Error('Connection was closed.');
+        }
+        if (this._connectionState !== PostMessageRpcClient.ConnectionState.CONNECTED) {
             throw new Error('Client is not connected, call init first');
         }
 
@@ -148,19 +157,6 @@ class PostMessageRpcClient extends RpcClient {
             // Store the request resolvers
             this._responseHandlers.set(request.id, { resolve, reject });
             this._waitingRequests.add(request.id, request.command);
-
-            // Periodically check if recipient window is still open
-            const checkIfServerWasClosed = () => {
-                if (!this._target || this._target.closed) {
-                    this._target = null;
-                    this.close();
-                    reject(new Error('Window was closed'));
-                    return true;
-                }
-                setTimeout(checkIfServerWasClosed, 500);
-                return false;
-            };
-            if (checkIfServerWasClosed()) return;
 
             console.debug('RpcClient REQUEST', request.command, request.args);
 
@@ -171,6 +167,7 @@ class PostMessageRpcClient extends RpcClient {
     private _connect() {
         if (this._connectionState === PostMessageRpcClient.ConnectionState.CONNECTED) return;
         this._connectionState = PostMessageRpcClient.ConnectionState.CONNECTING;
+
         return new Promise((resolve, reject) => {
             const connectedListener = (message: MessageEvent) => {
                 const { source, origin, data } = message;
@@ -195,7 +192,6 @@ class PostMessageRpcClient extends RpcClient {
                 this._connectionState = PostMessageRpcClient.ConnectionState.CONNECTED;
 
                 console.log('RpcClient: Connection established');
-                window.addEventListener('message', this._receiveListener);
                 resolve(true);
             };
 
@@ -207,22 +203,15 @@ class PostMessageRpcClient extends RpcClient {
             const tryToConnect = () => {
                 if (this._connectionState === PostMessageRpcClient.ConnectionState.CONNECTED) return;
 
-                if (this._connectionState === PostMessageRpcClient.ConnectionState.DISCONNECTED) {
+                if (this._connectionState === PostMessageRpcClient.ConnectionState.DISCONNECTED
+                    || this._checkIfServerClosed()) {
                     window.removeEventListener('message', connectedListener);
-                    reject(new Error('Connection was manually closed before being established'));
-                    return;
-                }
-
-                if (!this._target || this._target.closed) {
-                    window.removeEventListener('message', connectedListener);
-                    this._target = null;
-                    this.close();
-                    reject(new Error('Window was closed'));
+                    reject(new Error('Connection was closed'));
                     return;
                 }
 
                 try {
-                    this._target.postMessage({ command: 'ping', id: 1 }, this._allowedOrigin);
+                    this._target!.postMessage({ command: 'ping', id: 1 }, this._allowedOrigin);
                 } catch (e) {
                     console.error(`postMessage failed: ${e}`);
                 }
@@ -232,6 +221,12 @@ class PostMessageRpcClient extends RpcClient {
 
             window.setTimeout(tryToConnect, 100);
         });
+    }
+
+    private _checkIfServerClosed() {
+        if (this._target && !this._target.closed) return false;
+        this.close();
+        return true;
     }
 }
 /* tslint:disable-next-line:no-namespace */
