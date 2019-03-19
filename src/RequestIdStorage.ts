@@ -1,4 +1,5 @@
 import {JSONUtils} from './JSONUtils';
+import { ObjectType } from './ObjectType';
 
 export class RequestIdStorage {
     public static readonly KEY = 'rpcRequests';
@@ -13,7 +14,7 @@ export class RequestIdStorage {
         return validIds;
     }
     private readonly _store: Storage | null;
-    private _validIds: Map<number|string, [string, any]>;
+    private _validIds: Map<number|string, [string, ObjectType | null]>;
 
     /**
      * @param storeState Whether to store state in sessionStorage
@@ -40,7 +41,7 @@ export class RequestIdStorage {
         return result ? result[1] : null;
     }
 
-    public add(id: number, command: string, state: any = null) {
+    public add(id: number, command: string, state: ObjectType | null = null) {
         this._validIds.set(id, [command, state]);
         this._storeIds();
     }

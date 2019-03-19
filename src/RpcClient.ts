@@ -2,10 +2,11 @@ import { RandomUtils } from './RandomUtils';
 import { ResponseMessage, ResponseStatus } from './Messages';
 import { RequestIdStorage } from './RequestIdStorage';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
+import { ObjectType } from './ObjectType';
 
 export interface ResponseHandler {
-    resolve: (result: any, id?: number, state?: any) => any;
-    reject: (error: any, id?: number, state?: any) => any;
+    resolve: (result: any, id?: number, state?: ObjectType | null) => any;
+    reject: (error: any, id?: number, state?: ObjectType | null) => any;
 }
 
 export abstract class RpcClient {
@@ -22,8 +23,8 @@ export abstract class RpcClient {
     }
 
     public onResponse(command: string,
-                      resolve: (result: any, id?: number, state?: string | null) => any,
-                      reject: (error: any, id?: number, state?: string | null) => any) {
+                      resolve: (result: any, id?: number, state?: ObjectType | null) => any,
+                      reject: (error: any, id?: number, state?: ObjectType | null) => any) {
         this._responseHandlers.set(command, { resolve, reject });
     }
 
@@ -280,7 +281,7 @@ export class RedirectRpcClient extends RpcClient {
         this.callAndSaveLocalState(returnURL, null, command, ...args);
     }
 
-    public callAndSaveLocalState(returnURL: string, state: any, command: string, ...args: any[]) {
+    public callAndSaveLocalState(returnURL: string, state: ObjectType | null, command: string, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
 
