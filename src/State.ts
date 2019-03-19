@@ -108,7 +108,7 @@ export class State {
         }
     }
 
-    public toRequestUrl(baseUrl = '') {
+    public toRequestUrl(baseUrl: string) {
         return UrlRpcEncoder.prepareRedirectInvocation(
             baseUrl,
             this.id,
