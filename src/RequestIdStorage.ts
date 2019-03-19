@@ -13,7 +13,7 @@ export class RequestIdStorage {
         return validIds;
     }
     private readonly _store: Storage | null;
-    private _validIds: Map<number|string, [string, string|null]>;
+    private _validIds: Map<number|string, [string, any]>;
 
     /**
      * @param storeState Whether to store state in sessionStorage
@@ -40,7 +40,7 @@ export class RequestIdStorage {
         return result ? result[1] : null;
     }
 
-    public add(id: number, command: string, state: string|null = null) {
+    public add(id: number, command: string, state: any = null) {
         this._validIds.set(id, [command, state]);
         this._storeIds();
     }
