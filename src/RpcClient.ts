@@ -145,6 +145,14 @@ class PostMessageRpcClient extends RpcClient {
         if (this._target && this._target.closed) this._target = null;
     }
 
+    protected _receive(message: ResponseMessage & MessageEvent) {
+        if (message.source !== this._target) {
+            // ignore messages originating from another client's target window
+            return;
+        }
+        super._receive(message);
+    }
+
     private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
         if (!this._target || this._target.closed) {
             throw new Error('Connection was closed.');
