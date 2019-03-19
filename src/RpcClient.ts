@@ -4,8 +4,8 @@ import { RequestIdStorage } from './RequestIdStorage';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
 
 export interface ResponseHandler {
-    resolve: (result: any, id?: number, state?: string | null) => any;
-    reject: (error: any, id?: number, state?: string | null) => any;
+    resolve: (result: any, id?: number, state?: any) => any;
+    reject: (error: any, id?: number, state?: any) => any;
 }
 
 export abstract class RpcClient {
@@ -280,7 +280,7 @@ export class RedirectRpcClient extends RpcClient {
         this.callAndSaveLocalState(returnURL, null, command, ...args);
     }
 
-    public callAndSaveLocalState(returnURL: string, state: string | null, command: string, ...args: any[]) {
+    public callAndSaveLocalState(returnURL: string, state: any, command: string, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
 
