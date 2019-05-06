@@ -19,11 +19,15 @@ export class RpcServer {
     private readonly _allowedOrigin: string;
     private readonly _responseHandlers: Map<string, CommandHandler>;
     private readonly _receiveListener: (message: MessageEvent) => any;
+    private _clientTimeout = 0;
 
     constructor(allowedOrigin: string) {
         this._allowedOrigin = allowedOrigin;
         this._responseHandlers = new Map();
-        this._responseHandlers.set('ping', () => 'pong');
+        this._responseHandlers.set('ping', () => {
+            window.clearTimeout(this._clientTimeout);
+            return 'pong';
+        });
         this._receiveListener = this._receive.bind(this);
     }
 
@@ -31,8 +35,11 @@ export class RpcServer {
         this._responseHandlers.set(command, fn);
     }
 
-    public init() {
+    public init(onClientTimeout?: () => void) {
         window.addEventListener('message', this._receiveListener);
+        if (onClientTimeout) {
+            this._clientTimeout = window.setTimeout(() => { onClientTimeout(); }, 1000);
+        }
         this._receiveRedirect();
     }
 
@@ -43,6 +50,7 @@ export class RpcServer {
     private _receiveRedirect() {
         const message = UrlRpcEncoder.receiveRedirectCommand(window.location);
         if (message) {
+            window.clearTimeout(this._clientTimeout);
             this._receive(message);
         }
     }
