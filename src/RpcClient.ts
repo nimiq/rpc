@@ -1,3 +1,4 @@
+import { JSONUtils } from './JSONUtils';
 import { RandomUtils } from './RandomUtils';
 import { ResponseMessage, ResponseStatus } from './Messages';
 import { RequestIdStorage } from './RequestIdStorage';
@@ -32,7 +33,7 @@ export abstract class RpcClient {
 
     public abstract close(): void;
 
-    protected _receive(message: ResponseMessage) {
+    protected _receive(message: ResponseMessage, persistMessage = true) {
         // Discard all messages from unwanted sources
         // or which are not replies
         // or which are not from the correct origin
@@ -52,6 +53,9 @@ export abstract class RpcClient {
             }
 
             console.debug('RpcClient RECEIVE', data);
+            if (persistMessage) {
+                window.sessionStorage.setItem(`response-${data.id}`, JSONUtils.stringify(message));
+            }
 
             if (data.status === ResponseStatus.OK) {
                 callback.resolve(data.result, data.id, state);
@@ -259,9 +263,17 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     public async init() {
-        const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
+        let message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
-            this._receive(message);
+            window.sessionStorage.setItem(`response-${message.data.id}`, JSONUtils.stringify(message));
+        } else {
+            const searchParams = new URLSearchParams(window.location.search);
+            if (searchParams.has('id')) {
+                message = JSONUtils.parse(window.sessionStorage.getItem(`response-${searchParams.get('id')}`)!);
+            }
+        }
+        if (message) {
+            this._receive(message, false);
         } else {
             this._rejectOnBack();
         }
