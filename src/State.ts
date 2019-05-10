@@ -108,13 +108,12 @@ export class State {
         }
     }
 
-    public toRequestUrl(baseUrl: string) {
-        return UrlRpcEncoder.prepareRedirectInvocation(
-            baseUrl,
-            this.id,
-            this.returnURL || POSTMESSAGE_RETURN_URL,
-            this.data.command,
-            this.data.args,
-        );
+    public toRequestObject(): RedirectRequest {
+        return {
+            origin: this._origin,
+            data: this._data,
+            returnURL: this._returnURL || POSTMESSAGE_RETURN_URL,
+            source: typeof this._source === 'string' ? this._source : null,
+        };
     }
 }

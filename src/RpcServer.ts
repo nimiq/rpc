@@ -1,4 +1,4 @@
-import { RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL } from './Messages';
+import { RedirectRequest, ResponseStatus } from './Messages';
 import { JSONUtils } from './JSONUtils';
 import { State } from './State';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
@@ -99,12 +99,7 @@ export class RpcServer {
             console.debug('RpcServer ACCEPT', state.data);
 
             if (persistMessage) {
-                sessionStorage.setItem(`request-${state.data.id}`, JSONUtils.stringify({
-                    data: state.data,
-                    origin: state.origin,
-                    returnURL: POSTMESSAGE_RETURN_URL,
-                    source: null,
-                }));
+                sessionStorage.setItem(`request-${state.data.id}`, JSONUtils.stringify(state.toRequestObject()));
             }
 
             const url = new URL(window.location.href);
