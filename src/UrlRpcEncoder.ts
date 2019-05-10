@@ -3,7 +3,9 @@ import {JSONUtils} from './JSONUtils';
 import {State} from './State';
 
 export class UrlRpcEncoder {
-    public static receiveRedirectCommand(url: URL|Location): RedirectRequest|null {
+    public static receiveRedirectCommand(location: Location): RedirectRequest|null {
+        const url = new URL(location.href);
+
         // Need referrer for origin check
         if (!document.referrer) return null;
         const referrer = new URL(document.referrer);
