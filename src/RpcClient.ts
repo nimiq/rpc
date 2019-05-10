@@ -125,7 +125,6 @@ class PostMessageRpcClient extends RpcClient {
             command,
             args,
             id: RandomUtils.generateRandomId(),
-            persistInUrl: true,
         });
     }
 
@@ -158,7 +157,7 @@ class PostMessageRpcClient extends RpcClient {
         super._receive(message, false);
     }
 
-    private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
+    private async _call(request: {command: string, args: any[], id: number}): Promise<any> {
         if (!this._target || this._target.closed) {
             throw new Error('Connection was closed.');
         }

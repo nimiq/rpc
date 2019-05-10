@@ -33,7 +33,7 @@ export class State {
     private readonly _id: number;
     private readonly _postMessage: boolean;
     private readonly _returnURL: string | null;
-    private readonly _data: {command: string, args: any[], id: number, persistInUrl?: boolean};
+    private readonly _data: {command: string, args: any[], id: number};
     private readonly _source: MessagePort|Window|ServiceWorker|string|null;
 
     constructor(message: MessageEvent|RedirectRequest|PostMessage) {
