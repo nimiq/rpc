@@ -155,7 +155,7 @@ class PostMessageRpcClient extends RpcClient {
             // ignore messages originating from another client's target window
             return;
         }
-        super._receive(message);
+        super._receive(message, false);
     }
 
     private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
@@ -263,20 +263,24 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     public async init() {
-        let message = UrlRpcEncoder.receiveRedirectResponse(window.location);
-        if (message) {
-            window.sessionStorage.setItem(`response-${message.data.id}`, JSONUtils.stringify(message));
-        } else {
-            const searchParams = new URLSearchParams(window.location.search);
-            if (searchParams.has('id')) {
-                message = JSONUtils.parse(window.sessionStorage.getItem(`response-${searchParams.get('id')}`)!);
+        // Check for a response in the URL (also removes params)
+        const urlMessage = UrlRpcEncoder.receiveRedirectResponse(window.location);
+        if (urlMessage) {
+            this._receive(urlMessage);
+            return;
+        }
+
+        // Check for a stored response referenced by a URL 'id' parameter
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.has('id')) {
+            const response = window.sessionStorage.getItem(`response-${searchParams.get('id')}`);
+            if (response) {
+                this._receive(JSONUtils.parse(response), false);
+                return;
             }
         }
-        if (message) {
-            this._receive(message, false);
-        } else {
-            this._rejectOnBack();
-        }
+
+        this._rejectOnBack();
     }
 
     /* tslint:disable-next-line:no-empty */
