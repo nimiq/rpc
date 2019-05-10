@@ -52,22 +52,26 @@ export class RpcServer {
         // Stop executing, because if this property exists the client's rejectOnBack should be triggered
         if (history.state && history.state.rpcBackRejectionId) return;
 
-        let message = UrlRpcEncoder.receiveRedirectCommand(window.location);
-        if (message) {
-            window.sessionStorage.setItem(`request-${message.data.id}`, JSONUtils.stringify(message));
-        } else {
-            const searchParams = new URLSearchParams(window.location.search);
-            if(searchParams.has('id')) {
-                message = JSONUtils.parse(window.sessionStorage.getItem(`request-${searchParams.get('id')}`)!);
-            }
+        // Check for a request in the URL (also removes params)
+        const urlMessage = UrlRpcEncoder.receiveRedirectCommand(window.location);
+        if (urlMessage) {
+            this._receive(urlMessage);
+            return;
         }
-        if (message) {
-            window.clearTimeout(this._clientTimeout);
-            this._receive(message, false);
+
+        // Check for a stored request referenced by a URL 'id' parameter
+        const searchParams = new URLSearchParams(window.location.search);
+        if(searchParams.has('id')) {
+            const request = window.sessionStorage.getItem(`request-${searchParams.get('id')}`);
+            if (request) {
+                this._receive(JSONUtils.parse(request), false);
+                return;
+            }
         }
     }
 
     private _receive(message: MessageEvent|RedirectRequest, persistMessage = true) {
+        window.clearTimeout(this._clientTimeout);
         let state: State|null = null;
         try {
             state = new State(message);
