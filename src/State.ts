@@ -1,7 +1,7 @@
-import {PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
-import {UrlRpcEncoder} from './UrlRpcEncoder';
-export {ResponseStatus} from './Messages';
-import {JSONUtils} from './JSONUtils';
+import { PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL } from './Messages';
+import { UrlRpcEncoder } from './UrlRpcEncoder';
+export { ResponseStatus } from './Messages';
+import { JSONUtils } from './JSONUtils';
 
 export class State {
 

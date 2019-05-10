@@ -1,4 +1,4 @@
-import {JSONUtils} from './JSONUtils';
+import { JSONUtils } from './JSONUtils';
 import { ObjectType } from './ObjectType';
 
 export class RequestIdStorage {

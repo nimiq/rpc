@@ -1,6 +1,6 @@
-import {RedirectRequest, ResponseMessage, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
-import {JSONUtils} from './JSONUtils';
-import {State} from './State';
+import { RedirectRequest, ResponseMessage, ResponseStatus, POSTMESSAGE_RETURN_URL } from './Messages';
+import { JSONUtils } from './JSONUtils';
+import { State } from './State';
 
 export class UrlRpcEncoder {
     public static receiveRedirectCommand(location: Location): RedirectRequest|null {
