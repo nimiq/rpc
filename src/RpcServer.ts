@@ -48,6 +48,9 @@ export class RpcServer {
     }
 
     private _receiveRedirect() {
+        // Stop executing, because if this property exists the client's rejectOnBack should be triggered
+        if (history.state && history.state.rpcBackRejectionId) return;
+
         const message = UrlRpcEncoder.receiveRedirectCommand(window.location);
         if (message) {
             window.clearTimeout(this._clientTimeout);
