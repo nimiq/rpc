@@ -26,7 +26,6 @@ export class RpcServer {
         this._allowedOrigin = allowedOrigin;
         this._responseHandlers = new Map();
         this._responseHandlers.set('ping', () => {
-            window.clearTimeout(this._clientTimeout);
             return 'pong';
         });
         this._receiveListener = this._receive.bind(this);
@@ -53,19 +52,18 @@ export class RpcServer {
         if (history.state && history.state.rpcBackRejectionId) return;
 
         // Check for a request in the URL (also removes params)
-        const urlMessage = UrlRpcEncoder.receiveRedirectCommand(window.location);
-        if (urlMessage) {
-            this._receive(urlMessage);
+        const urlRequest = UrlRpcEncoder.receiveRedirectCommand(window.location);
+        if (urlRequest) {
+            this._receive(urlRequest);
             return;
         }
 
         // Check for a stored request referenced by a URL 'id' parameter
         const searchParams = new URLSearchParams(window.location.search);
         if (searchParams.has('id')) {
-            const request = window.sessionStorage.getItem(`request-${searchParams.get('id')}`);
-            if (request) {
-                this._receive(JSONUtils.parse(request), false);
-                return;
+            const storedRequest = window.sessionStorage.getItem(`request-${searchParams.get('id')}`);
+            if (storedRequest) {
+                this._receive(JSONUtils.parse(storedRequest), false);
             }
         }
     }

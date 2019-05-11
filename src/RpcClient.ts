@@ -120,14 +120,6 @@ class PostMessageRpcClient extends RpcClient {
         });
     }
 
-    public async callAndPersist(command: string, ...args: any[]): Promise<any> {
-        return this._call({
-            command,
-            args,
-            id: RandomUtils.generateRandomId(),
-        });
-    }
-
     public close() {
         // Clean up old requests and disconnect. Note that until the popup get's closed by the user
         // it's possible to connect again though by calling init.
@@ -263,22 +255,22 @@ export class RedirectRpcClient extends RpcClient {
 
     public async init() {
         // Check for a response in the URL (also removes params)
-        const urlMessage = UrlRpcEncoder.receiveRedirectResponse(window.location);
-        if (urlMessage) {
-            this._receive(urlMessage);
+        const urlResponse = UrlRpcEncoder.receiveRedirectResponse(window.location);
+        if (urlResponse) {
+            this._receive(urlResponse);
             return;
         }
 
         // Check for a stored response referenced by a URL 'id' parameter
         const searchParams = new URLSearchParams(window.location.search);
         if (searchParams.has('id')) {
-            const response = window.sessionStorage.getItem(`response-${searchParams.get('id')}`);
-            if (response) {
-                this._receive(JSONUtils.parse(response), false);
+            const storedResponse = window.sessionStorage.getItem(`response-${searchParams.get('id')}`);
+            if (storedResponse) {
+                this._receive(JSONUtils.parse(storedResponse), false);
                 return;
             }
         }
-
+        // If there is no response in the URL or stored the user must have navigated back in history.
         this._rejectOnBack();
     }
 

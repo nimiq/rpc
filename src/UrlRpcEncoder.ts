@@ -25,14 +25,11 @@ export class UrlRpcEncoder {
         // Ignore messages without a valid return path
         if (!fragment.has('returnURL')) return null;
         const returnURL = fragment.get('returnURL')!;
-        const answerByPostMessage = fragment.get('returnURL') === POSTMESSAGE_RETURN_URL
-                                    && (window.opener || window.parent);
-        if (!answerByPostMessage) {
-            // Only allow returning to same origin
-            const returnURL = new URL(fragment.get('returnURL')!);
-            if (returnURL.origin !== referrer.origin) return null;
-        }
         fragment.delete('returnURL');
+        const answerByPostMessage = returnURL === POSTMESSAGE_RETURN_URL
+                                    && (window.opener || window.parent);
+        // Only allow returning to same origin
+        if (!answerByPostMessage && new URL(returnURL).origin !== referrer.origin) return null
 
         // Parse args
         let args = [];
@@ -46,12 +43,7 @@ export class UrlRpcEncoder {
         args = Array.isArray(args) ? args : [];
         fragment.delete('args');
 
-        if (fragment.toString().endsWith('=')) {
-            url.hash = fragment.toString().slice(0, -1);
-        } else {
-            url.hash = fragment.toString();
-        }
-        history.replaceState(history.state, '', url.href);
+        this._setUrlFragment(url, fragment);
 
         return {
             origin: referrer.origin,
@@ -65,7 +57,8 @@ export class UrlRpcEncoder {
         };
     }
 
-    public static receiveRedirectResponse(url: URL|Location): ResponseMessage|null {
+    public static receiveRedirectResponse(location: Location): ResponseMessage|null {
+        const url = new URL(location.href);
         // Need referrer for origin check
         if (!document.referrer) return null;
         const referrer = new URL(document.referrer);
@@ -89,12 +82,7 @@ export class UrlRpcEncoder {
         const result = JSONUtils.parse(fragment.get('result')!);
         fragment.delete('result');
 
-        if (fragment.toString().endsWith('=')) {
-            url.hash = fragment.toString().slice(0, -1);
-        } else {
-            url.hash = fragment.toString();
-        }
-        history.replaceState(history.state, '', url.href);
+        this._setUrlFragment(url, fragment);
 
         return {
             origin: referrer.origin,
@@ -136,5 +124,27 @@ export class UrlRpcEncoder {
         targetUrl.hash = fragment.toString();
 
         return targetUrl.href;
+    }
+
+    private static _setUrlFragment(url: URL, fragment: URLSearchParams) {
+        /*
+        The Url might include a fragment on its own before adding the parameters to it.
+        It might even have a fragment consisting of other parameters.
+        A '=' at the last position of the remaining fragment string indicates that at least one fragment
+        part is remaining. Since URLSearchParams will try to represent a key=value pair with the value
+        missing the '=' is added.
+        Unfortunately fragments (as in regular fragment, not parameters) ending in a '=' will not
+        work with this implementation. All other fragments, including other sets of parameters should be
+        preserved by removing the '=' in case it exists at the end of the fragment. However, if other
+        parameters are used without values (i.e. #abc&123&value) they will now include a '=' except
+        for the last one (i.e. #abc=&123=&value), which is a valid input to URLSearchParams.
+        */
+        if (fragment.toString().endsWith('=')) {
+            url.hash = fragment.toString().slice(0, -1);
+        } else {
+            url.hash = fragment.toString();
+        }
+
+        history.replaceState(history.state, '', url.href);
     }
 }
