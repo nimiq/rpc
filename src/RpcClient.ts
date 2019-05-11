@@ -33,14 +33,14 @@ export abstract class RpcClient {
 
     public abstract close(): void;
 
-    protected _receive(message: ResponseMessage, persistMessage = true) {
+    protected _receive(message: ResponseMessage): boolean {
         // Discard all messages from unwanted sources
         // or which are not replies
         // or which are not from the correct origin
         if (!message.data
             || !message.data.status
             || !message.data.id
-            || (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin)) return;
+            || (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin)) return false;
         const data = message.data;
 
         const callback = this._getCallback(data.id);
@@ -53,9 +53,6 @@ export abstract class RpcClient {
             }
 
             console.debug('RpcClient RECEIVE', data);
-            if (persistMessage) {
-                window.sessionStorage.setItem(`response-${data.id}`, JSONUtils.stringify(message));
-            }
 
             if (data.status === ResponseStatus.OK) {
                 callback.resolve(data.result, data.id, state);
@@ -69,8 +66,10 @@ export abstract class RpcClient {
                 }
                 callback.reject(error, data.id, state);
             }
+            return true;
         } else {
             console.warn('Unknown RPC response:', data);
+            return false;
         }
     }
 
@@ -141,12 +140,12 @@ class PostMessageRpcClient extends RpcClient {
         if (this._target && this._target.closed) this._target = null;
     }
 
-    protected _receive(message: ResponseMessage & MessageEvent) {
+    protected _receive(message: ResponseMessage & MessageEvent): boolean {
         if (message.source !== this._target) {
             // ignore messages originating from another client's target window
-            return;
+            return false;
         }
-        super._receive(message, false);
+        return super._receive(message);
     }
 
     private async _call(request: {command: string, args: any[], id: number}): Promise<any> {
@@ -300,6 +299,14 @@ export class RedirectRpcClient extends RpcClient {
         console.debug('RpcClient REQUEST', command, args);
 
         window.location.href = url;
+    }
+
+    protected _receive(response: ResponseMessage, persistMessage = true): boolean {
+        const responseWasHandled = super._receive(response);
+        if (responseWasHandled && persistMessage) {
+            window.sessionStorage.setItem(`response-${response.data.id}`, JSONUtils.stringify(response));
+        }
+        return responseWasHandled;
     }
 
     private _rejectOnBack() {
