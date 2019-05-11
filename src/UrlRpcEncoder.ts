@@ -51,7 +51,7 @@ export class UrlRpcEncoder {
         } else {
             url.hash = fragment.toString();
         }
-        history.replaceState(history.state, /* title */ '', url.href);
+        history.replaceState(history.state, '', url.href);
 
         return {
             origin: referrer.origin,
@@ -94,7 +94,7 @@ export class UrlRpcEncoder {
         } else {
             url.hash = fragment.toString();
         }
-        history.replaceState(history.state, /* title */ '', url.href);
+        history.replaceState(history.state, '', url.href);
 
         return {
             origin: referrer.origin,
