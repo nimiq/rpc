@@ -262,14 +262,7 @@ export class RedirectRpcClient extends RpcClient {
         const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
         if (message) {
             this._receive(message);
-
-        // The URL the user goes back to in the browser history (the page
-        // that this RpcClient is inited on) may itself have been a
-        // URL-encoded RPC request. Thus before triggering a potential
-        // rejection of the called request, we make sure that there is
-        // no RPC request in the URL, to be able to re-start the actual
-        // request that the user goes back to.
-        } else if (!UrlRpcEncoder.receiveRedirectCommand(window.location)) {
+        } else {
             this._rejectOnBack();
         }
     }
@@ -277,17 +270,25 @@ export class RedirectRpcClient extends RpcClient {
     /* tslint:disable-next-line:no-empty */
     public close() { }
 
-    public call(returnURL: string, command: string, ...args: any[]) {
-        this.callAndSaveLocalState(returnURL, null, command, ...args);
+    public call(returnURL: string, command: string, handleHistoryBack = false, ...args: any[]) {
+        this.callAndSaveLocalState(returnURL, null, command, handleHistoryBack, ...args);
     }
 
-    public callAndSaveLocalState(returnURL: string, state: ObjectType | null, command: string, ...args: any[]) {
+    public callAndSaveLocalState(returnURL: string, state: ObjectType | null, command: string, handleHistoryBack = false, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
 
         this._waitingRequests.add(id, command, state);
 
-        history.replaceState({rpcRequestId: id}, document.title);
+        if (handleHistoryBack) {
+            /**
+             * The rpcBackRejectionId in the history.state is used to detect in the client
+             * if a history entry was visited before, which makes it a history.back
+             * navigation. The stored ID is then also used to retrieve the correct
+             * stored callback and waiting request, to be able to reject it.
+             */
+            history.replaceState(Object.assign({}, history.state, { rpcBackRejectionId: id }), '');
+        }
 
         console.debug('RpcClient REQUEST', command, args);
 
@@ -295,21 +296,24 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     private _rejectOnBack() {
-        if (history.state && history.state.rpcRequestId) {
-            const id = history.state.rpcRequestId;
+        if (!history.state || !history.state.rpcBackRejectionId) return;
 
-            const callback = this._getCallback(id);
-            const state = this._waitingRequests.getState(id);
+        const id = history.state.rpcBackRejectionId;
 
-            if (callback) {
-                if (!this._preserveRequests) {
-                    this._waitingRequests.remove(id);
-                    this._responseHandlers.delete(id);
-                }
-                console.debug('RpcClient BACK');
-                const error = new Error('Request aborted');
-                callback.reject(error, id, state);
+        // Delete the ID, so the request is not rejected again when the page is refreshed/revisited
+        history.replaceState(Object.assign({}, history.state, { rpcBackRejectionId: null }), '');
+
+        const callback = this._getCallback(id);
+        const state = this._waitingRequests.getState(id);
+
+        if (callback) {
+            if (!this._preserveRequests) {
+                this._waitingRequests.remove(id);
+                this._responseHandlers.delete(id);
             }
+            console.debug('RpcClient BACK');
+            const error = new Error('Request aborted');
+            callback.reject(error, id, state);
         }
     }
 }
