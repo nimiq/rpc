@@ -58,18 +58,18 @@ export class RpcServer {
     private _receive(message: MessageEvent|RedirectRequest) {
         let state: State|null = null;
         try {
-            state = new State(message);
+            if (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin) {
+                throw new Error('Unauthorized');
+            }
 
             // Cannot reply to a message that has no source window or return URL
             if (!('source' in message) && !('returnURL' in message)) return;
 
+            state = new State(message);
+
             // Ignore messages without a command
             if (!('command' in state.data)) {
                 return;
-            }
-
-            if (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin) {
-                throw new Error('Unauthorized');
             }
 
             const args = message.data.args && Array.isArray(message.data.args) ? message.data.args : [];
