@@ -1,3 +1,4 @@
+import { JSONUtils } from './JSONUtils';
 import { RandomUtils } from './RandomUtils';
 import { ResponseMessage, ResponseStatus } from './Messages';
 import { RequestIdStorage } from './RequestIdStorage';
@@ -32,14 +33,14 @@ export abstract class RpcClient {
 
     public abstract close(): void;
 
-    protected _receive(message: ResponseMessage) {
+    protected _receive(message: ResponseMessage): boolean {
         // Discard all messages from unwanted sources
         // or which are not replies
         // or which are not from the correct origin
         if (!message.data
             || !message.data.status
             || !message.data.id
-            || (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin)) return;
+            || (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin)) return false;
         const data = message.data;
 
         const callback = this._getCallback(data.id);
@@ -65,8 +66,10 @@ export abstract class RpcClient {
                 }
                 callback.reject(error, data.id, state);
             }
+            return true;
         } else {
             console.warn('Unknown RPC response:', data);
+            return false;
         }
     }
 
@@ -116,15 +119,6 @@ class PostMessageRpcClient extends RpcClient {
         });
     }
 
-    public async callAndPersist(command: string, ...args: any[]): Promise<any> {
-        return this._call({
-            command,
-            args,
-            id: RandomUtils.generateRandomId(),
-            persistInUrl: true,
-        });
-    }
-
     public close() {
         // Clean up old requests and disconnect. Note that until the popup get's closed by the user
         // it's possible to connect again though by calling init.
@@ -146,15 +140,15 @@ class PostMessageRpcClient extends RpcClient {
         if (this._target && this._target.closed) this._target = null;
     }
 
-    protected _receive(message: ResponseMessage & MessageEvent) {
+    protected _receive(message: ResponseMessage & MessageEvent): boolean {
         if (message.source !== this._target) {
             // ignore messages originating from another client's target window
-            return;
+            return false;
         }
-        super._receive(message);
+        return super._receive(message);
     }
 
-    private async _call(request: {command: string, args: any[], id: number, persistInUrl?: boolean}): Promise<any> {
+    private async _call(request: {command: string, args: any[], id: number}): Promise<any> {
         if (!this._target || this._target.closed) {
             throw new Error('Connection was closed.');
         }
@@ -259,12 +253,24 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     public async init() {
-        const message = UrlRpcEncoder.receiveRedirectResponse(window.location);
-        if (message) {
-            this._receive(message);
-        } else {
-            this._rejectOnBack();
+        // Check for a response in the URL (also removes params)
+        const urlResponse = UrlRpcEncoder.receiveRedirectResponse(window.location);
+        if (urlResponse) {
+            this._receive(urlResponse);
+            return;
         }
+
+        // Check for a stored response referenced by a URL 'id' parameter
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.has('id')) {
+            const storedResponse = window.sessionStorage.getItem(`response-${searchParams.get('id')}`);
+            if (storedResponse) {
+                this._receive(JSONUtils.parse(storedResponse), false);
+                return;
+            }
+        }
+        // If there is no response in the URL or stored the user must have navigated back in history.
+        this._rejectOnBack();
     }
 
     /* tslint:disable-next-line:no-empty */
@@ -293,6 +299,14 @@ export class RedirectRpcClient extends RpcClient {
         console.debug('RpcClient REQUEST', command, args);
 
         window.location.href = url;
+    }
+
+    protected _receive(response: ResponseMessage, persistMessage = true): boolean {
+        const responseWasHandled = super._receive(response);
+        if (responseWasHandled && persistMessage) {
+            window.sessionStorage.setItem(`response-${response.data.id}`, JSONUtils.stringify(response));
+        }
+        return responseWasHandled;
     }
 
     private _rejectOnBack() {

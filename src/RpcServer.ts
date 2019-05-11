@@ -1,6 +1,7 @@
-import {RedirectRequest, ResponseStatus} from './Messages';
-import {State} from './State';
-import {UrlRpcEncoder} from './UrlRpcEncoder';
+import { RedirectRequest, ResponseStatus } from './Messages';
+import { JSONUtils } from './JSONUtils';
+import { State } from './State';
+import { UrlRpcEncoder } from './UrlRpcEncoder';
 
 export {State, ResponseStatus} from './State';
 
@@ -25,7 +26,6 @@ export class RpcServer {
         this._allowedOrigin = allowedOrigin;
         this._responseHandlers = new Map();
         this._responseHandlers.set('ping', () => {
-            window.clearTimeout(this._clientTimeout);
             return 'pong';
         });
         this._receiveListener = this._receive.bind(this);
@@ -51,14 +51,25 @@ export class RpcServer {
         // Stop executing, because if this property exists the client's rejectOnBack should be triggered
         if (history.state && history.state.rpcBackRejectionId) return;
 
-        const message = UrlRpcEncoder.receiveRedirectCommand(window.location);
-        if (message) {
-            window.clearTimeout(this._clientTimeout);
-            this._receive(message);
+        // Check for a request in the URL (also removes params)
+        const urlRequest = UrlRpcEncoder.receiveRedirectCommand(window.location);
+        if (urlRequest) {
+            this._receive(urlRequest);
+            return;
+        }
+
+        // Check for a stored request referenced by a URL 'id' parameter
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.has('id')) {
+            const storedRequest = window.sessionStorage.getItem(`request-${searchParams.get('id')}`);
+            if (storedRequest) {
+                this._receive(JSONUtils.parse(storedRequest), false);
+            }
         }
     }
 
-    private _receive(message: MessageEvent|RedirectRequest) {
+    private _receive(message: MessageEvent|RedirectRequest, persistMessage = true) {
+        window.clearTimeout(this._clientTimeout);
         let state: State|null = null;
         try {
             state = new State(message);
@@ -89,13 +100,13 @@ export class RpcServer {
 
             console.debug('RpcServer ACCEPT', state.data);
 
-            if (state.data.persistInUrl && window.history && window.history.replaceState) {
-                window.history.replaceState(
-                    history.state,
-                    document.title,
-                    state.toRequestUrl(`${window.location.origin}${window.location.pathname}`),
-                );
+            if (persistMessage) {
+                sessionStorage.setItem(`request-${state.data.id}`, JSONUtils.stringify(state.toRequestObject()));
             }
+
+            const url = new URL(window.location.href);
+            url.searchParams.set('id', state.data.id.toString());
+            window.history.replaceState(history.state, '', url.href);
 
             // Call method
             const result = requestedMethod(state, ...args);

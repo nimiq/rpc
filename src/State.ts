@@ -1,7 +1,7 @@
-import {PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL} from './Messages';
-import {UrlRpcEncoder} from './UrlRpcEncoder';
-export {ResponseStatus} from './Messages';
-import {JSONUtils} from './JSONUtils';
+import { PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL } from './Messages';
+import { UrlRpcEncoder } from './UrlRpcEncoder';
+export { ResponseStatus } from './Messages';
+import { JSONUtils } from './JSONUtils';
 
 export class State {
 
@@ -33,7 +33,7 @@ export class State {
     private readonly _id: number;
     private readonly _postMessage: boolean;
     private readonly _returnURL: string | null;
-    private readonly _data: {command: string, args: any[], id: number, persistInUrl?: boolean};
+    private readonly _data: {command: string, args: any[], id: number};
     private readonly _source: MessagePort|Window|ServiceWorker|string|null;
 
     constructor(message: MessageEvent|RedirectRequest|PostMessage) {
@@ -108,13 +108,12 @@ export class State {
         }
     }
 
-    public toRequestUrl(baseUrl: string) {
-        return UrlRpcEncoder.prepareRedirectInvocation(
-            baseUrl,
-            this.id,
-            this.returnURL || POSTMESSAGE_RETURN_URL,
-            this.data.command,
-            this.data.args,
-        );
+    public toRequestObject(): RedirectRequest {
+        return {
+            origin: this._origin,
+            data: this._data,
+            returnURL: this._returnURL || POSTMESSAGE_RETURN_URL,
+            source: typeof this._source === 'string' ? this._source : null,
+        };
     }
 }
