@@ -69,7 +69,6 @@ export class RpcServer {
     }
 
     private _receive(message: MessageEvent|RedirectRequest, persistMessage = true) {
-        window.clearTimeout(this._clientTimeout);
         let state: State|null = null;
         try {
             state = new State(message);
@@ -99,6 +98,7 @@ export class RpcServer {
             }
 
             console.debug('RpcServer ACCEPT', state.data);
+            window.clearTimeout(this._clientTimeout);
 
             if (persistMessage) {
                 sessionStorage.setItem(`request-${state.data.id}`, JSONUtils.stringify(state.toRequestObject()));
