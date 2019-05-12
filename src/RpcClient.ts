@@ -8,6 +8,7 @@ import { ObjectType } from './ObjectType';
 export interface ResponseHandler {
     resolve: (result: any, id?: number, state?: ObjectType | null) => any;
     reject: (error: any, id?: number, state?: ObjectType | null) => any;
+    once: boolean;
 }
 
 export abstract class RpcClient {
@@ -26,12 +27,30 @@ export abstract class RpcClient {
     public onResponse(command: string,
                       resolve: (result: any, id?: number, state?: ObjectType | null) => any,
                       reject: (error: any, id?: number, state?: ObjectType | null) => any) {
-        this._responseHandlers.set(command, { resolve, reject });
+        this._responseHandlers.set(command, { resolve, reject, once: false });
+    }
+
+    public onceResponse(command: string,
+                        resolve: (result: any, id?: number, state?: ObjectType | null) => any,
+                        reject: (error: any, id?: number, state?: ObjectType | null) => any) {
+        this._responseHandlers.set(command, { resolve, reject, once: true });
     }
 
     public abstract init(): Promise<void>;
 
     public abstract close(): void;
+
+    public clearRequest(id: number) {
+        sessionStorage.removeItem(`request-${id}`);
+        sessionStorage.removeItem(`response-${id}`);
+        const url = new URL(window.location.href);
+        const params = url.searchParams;
+        if (params.has('id') && parseInt(params.get('id')!, 10) === id) {
+            params.delete('id');
+            url.search = params.toString();
+            window.history.replaceState(window.history.state, '', url.href);
+        }
+    }
 
     protected _receive(message: ResponseMessage): boolean {
         // Discard all messages from unwanted sources
@@ -53,6 +72,10 @@ export abstract class RpcClient {
             }
 
             console.debug('RpcClient RECEIVE', data);
+
+            if (callback.once) {
+                this.clearRequest(data.id);
+            }
 
             if (data.status === ResponseStatus.OK) {
                 callback.resolve(data.result, data.id, state);
@@ -158,7 +181,7 @@ class PostMessageRpcClient extends RpcClient {
 
         return new Promise<any>((resolve, reject) => {
             // Store the request resolvers
-            this._responseHandlers.set(request.id, { resolve, reject });
+            this._responseHandlers.set(request.id, { resolve, reject, once: true });
             this._waitingRequests.add(request.id, request.command);
 
             console.debug('RpcClient REQUEST', request.command, request.args);
