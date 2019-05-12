@@ -1,6 +1,6 @@
 {
   "name": "@nimiq/rpc",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "RPC Client/Server",
   "repository": {
     "type": "git",
