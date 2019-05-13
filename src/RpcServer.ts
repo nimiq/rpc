@@ -17,13 +17,13 @@ export class RpcServer {
         state.reply(ResponseStatus.ERROR, error);
     }
 
-    private readonly _allowedOrigin: string;
+    private readonly _allowedOrigins: string[];
     private readonly _responseHandlers: Map<string, CommandHandler>;
     private readonly _receiveListener: (message: MessageEvent) => any;
     private _clientTimeout = 0;
 
-    constructor(allowedOrigin: string) {
-        this._allowedOrigin = allowedOrigin;
+    constructor(allowedOrigins: string|string[]) {
+        this._allowedOrigins = typeof allowedOrigins === 'string' ? [allowedOrigins] : allowedOrigins;
         this._responseHandlers = new Map();
         this._responseHandlers.set('ping', () => {
             return 'pong';
@@ -81,7 +81,7 @@ export class RpcServer {
                 return;
             }
 
-            if (this._allowedOrigin !== '*' && message.origin !== this._allowedOrigin) {
+            if (this._allowedOrigins.indexOf('*') < 0 && this._allowedOrigins.indexOf(message.origin) < 0) {
                 throw new Error('Unauthorized');
             }
 
