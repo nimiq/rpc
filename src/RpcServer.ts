@@ -60,8 +60,10 @@ export class RpcServer {
 
         // Check for a stored request referenced by a URL 'id' parameter
         const searchParams = new URLSearchParams(window.location.search);
-        if (searchParams.has('id')) {
-            const storedRequest = window.sessionStorage.getItem(`request-${searchParams.get('id')}`);
+        if (searchParams.has(UrlRpcEncoder.URL_SEARCHPARAM_NAME)) {
+            const storedRequest = window.sessionStorage.getItem(
+                `request-${searchParams.get(UrlRpcEncoder.URL_SEARCHPARAM_NAME)}`,
+            );
             if (storedRequest) {
                 this._receive(JSONUtils.parse(storedRequest), false);
             }
@@ -105,7 +107,7 @@ export class RpcServer {
             }
 
             const url = new URL(window.location.href);
-            url.searchParams.set('id', state.data.id.toString());
+            url.searchParams.set(UrlRpcEncoder.URL_SEARCHPARAM_NAME, state.data.id.toString());
             window.history.replaceState(history.state, '', url.href);
 
             // Call method

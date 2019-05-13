@@ -3,6 +3,8 @@ import { JSONUtils } from './JSONUtils';
 import { State } from './State';
 
 export class UrlRpcEncoder {
+    public static URL_SEARCHPARAM_NAME = 'rpcId';
+
     public static receiveRedirectCommand(location: Location): RedirectRequest|null {
         const url = new URL(location.href);
 
@@ -12,10 +14,13 @@ export class UrlRpcEncoder {
 
         // Parse query
         const params = new URLSearchParams(url.search);
-        // Ignore messages without an ID
-        if (!params.has('id')) return null;
-
         const fragment = new URLSearchParams(url.hash.substring(1));
+
+        // Ignore messages without an ID
+        if (!fragment.has('id')) return null;
+        const id = parseInt(fragment.get('id')!, 10);
+        fragment.delete('id');
+        params.set(UrlRpcEncoder.URL_SEARCHPARAM_NAME, id.toString());
 
         // Ignore messages without a command
         if (!fragment.has('command')) return null;
@@ -43,12 +48,15 @@ export class UrlRpcEncoder {
         args = Array.isArray(args) ? args : [];
         fragment.delete('args');
 
+        url.search = params.toString();
         this._setUrlFragment(url, fragment);
+
+        history.replaceState(history.state, '', url.href);
 
         return {
             origin: referrer.origin,
             data: {
-                id: parseInt(params.get('id')!, 10),
+                id,
                 command,
                 args,
             },
@@ -65,11 +73,13 @@ export class UrlRpcEncoder {
 
         // Parse query
         const params = new URLSearchParams(url.search);
+        const fragment = new URLSearchParams(url.hash.substring(1));
 
         // Ignore messages without an ID
-        if (!params.has('id')) return null;
-
-        const fragment = new URLSearchParams(url.hash.substring(1));
+        if (!fragment.has('id')) return null;
+        const id = parseInt(fragment.get('id')!, 10);
+        fragment.delete('id');
+        params.set(UrlRpcEncoder.URL_SEARCHPARAM_NAME, id.toString());
 
         // Ignore messages without a status
         if (!fragment.has('status')) return null;
@@ -82,12 +92,15 @@ export class UrlRpcEncoder {
         const result = JSONUtils.parse(fragment.get('result')!);
         fragment.delete('result');
 
+        url.search = params.toString();
         this._setUrlFragment(url, fragment);
+
+        history.replaceState(history.state, '', url.href);
 
         return {
             origin: referrer.origin,
             data: {
-                id: parseInt(params.get('id')!, 10),
+                id,
                 status,
                 result,
             },
@@ -96,9 +109,8 @@ export class UrlRpcEncoder {
 
     public static prepareRedirectReply(state: State, status: ResponseStatus, result: any): string {
         const returnUrl = new URL(state.returnURL!);
-        const search = returnUrl.searchParams;
-        search.set('id', state.id.toString());
         const fragment = new URLSearchParams(returnUrl.hash.substring(1));
+        fragment.set('id', state.id.toString());
         fragment.set('status', status);
         fragment.set('result', JSONUtils.stringify(result));
 
@@ -111,9 +123,8 @@ export class UrlRpcEncoder {
                                             returnURL: string, command: string,
                                             args: any[]): string {
         const targetUrl = new URL(targetURL);
-        const search = targetUrl.searchParams;
-        search.set('id', id.toString());
         const fragment = new URLSearchParams(targetUrl.hash.substring(1));
+        fragment.set('id', id.toString());
         fragment.set('returnURL', returnURL);
         fragment.set('command', command);
 
@@ -144,7 +155,5 @@ export class UrlRpcEncoder {
         } else {
             url.hash = fragment.toString();
         }
-
-        history.replaceState(history.state, '', url.href);
     }
 }
