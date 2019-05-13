@@ -262,8 +262,10 @@ export class RedirectRpcClient extends RpcClient {
 
         // Check for a stored response referenced by a URL 'id' parameter
         const searchParams = new URLSearchParams(window.location.search);
-        if (searchParams.has('id')) {
-            const storedResponse = window.sessionStorage.getItem(`response-${searchParams.get('id')}`);
+        if (searchParams.has(UrlRpcEncoder.URL_SEARCHPARAM_NAME)) {
+            const storedResponse = window.sessionStorage.getItem(
+                `response-${searchParams.get(UrlRpcEncoder.URL_SEARCHPARAM_NAME)}`,
+            );
             if (storedResponse) {
                 this._receive(JSONUtils.parse(storedResponse), false);
                 return;
