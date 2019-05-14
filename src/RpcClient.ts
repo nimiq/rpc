@@ -260,6 +260,9 @@ export class RedirectRpcClient extends RpcClient {
             return;
         }
 
+        // If there was no response in the URL it might be a history.back.
+        if (this._rejectOnBack()) return; // if rejectOnBack did reject do not look for a stored response
+
         // Check for a stored response referenced by a URL 'id' parameter
         const searchParams = new URLSearchParams(window.location.search);
         if (searchParams.has('id')) {
@@ -269,8 +272,6 @@ export class RedirectRpcClient extends RpcClient {
                 return;
             }
         }
-        // If there is no response in the URL or stored the user must have navigated back in history.
-        this._rejectOnBack();
     }
 
     /* tslint:disable-next-line:no-empty */
@@ -309,8 +310,8 @@ export class RedirectRpcClient extends RpcClient {
         return responseWasHandled;
     }
 
-    private _rejectOnBack() {
-        if (!history.state || !history.state.rpcBackRejectionId) return;
+    private _rejectOnBack(): boolean {
+        if (!history.state || !history.state.rpcBackRejectionId) return false;
 
         const id = history.state.rpcBackRejectionId;
 
@@ -328,6 +329,8 @@ export class RedirectRpcClient extends RpcClient {
             console.debug('RpcClient BACK');
             const error = new Error('Request aborted');
             callback.reject(error, id, state);
+            return true;
         }
+        return false;
     }
 }
