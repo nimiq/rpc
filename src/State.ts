@@ -1,4 +1,4 @@
-import { PostMessage, RedirectRequest, ResponseStatus, POSTMESSAGE_RETURN_URL } from './Messages';
+import { PostMessage, RedirectRequest, ResponseStatus, ResponseMethod } from './Messages';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
 export { ResponseStatus } from './Messages';
 import { JSONUtils } from './JSONUtils';
@@ -31,7 +31,7 @@ export class State {
     }
     private readonly _origin: string;
     private readonly _id: number;
-    private readonly _postMessage: boolean;
+    private readonly _responseMethod: ResponseMethod | string;
     private readonly _returnURL: string | null;
     private readonly _data: {command: string, args: any[], id: number};
     private readonly _source: MessagePort|Window|ServiceWorker|string|null;
@@ -41,8 +41,11 @@ export class State {
 
         this._origin = message.origin;
         this._id = message.data.id;
-        this._postMessage = 'source' in message
-                        && !('returnURL' in message && message.returnURL !== POSTMESSAGE_RETURN_URL);
+        this._responseMethod = 'responseMethod' in message
+            ? message.responseMethod!
+            : 'source' in message && !('returnURL' in message)
+                ? ResponseMethod.MESSAGE
+                : ResponseMethod.URL;
         this._returnURL = 'returnURL' in message ? message.returnURL : null;
         this._data = message.data;
         this._source = 'source' in message ? message.source : null;
@@ -52,9 +55,10 @@ export class State {
         const obj: any = {
             origin: this._origin,
             data: this._data,
+            responseMethod: this._responseMethod,
         };
 
-        if (this._postMessage) {
+        if (this._responseMethod === ResponseMethod.MESSAGE) {
             if (this._source === window.opener) {
                 obj.source = 'opener';
             } else if (this._source === window.parent) {
@@ -80,7 +84,7 @@ export class State {
 
         // TODO: Clear waiting request storage?
 
-        if (this._postMessage) {
+        if (this._responseMethod === ResponseMethod.MESSAGE) {
             // Send via postMessage (e.g., popup or url-persisted popup)
 
             let target;
@@ -103,17 +107,52 @@ export class State {
                 id: this.id,
             }, this.origin);
         } else if (this._returnURL) {
-            // Send via top-level navigation
-            window.location.href = UrlRpcEncoder.prepareRedirectReply(this, status, result);
+            const reply = UrlRpcEncoder.prepareRedirectReply(this, status, result);
+            console.log(this._responseMethod, reply);
+            if (this._responseMethod === ResponseMethod.URL) {
+                // Send via top-level navigation
+                window.location.href = reply;
+            } else if (this._responseMethod === ResponseMethod.POST) {
+                // send via form to server
+                const $form = document.createElement('form');
+                $form.setAttribute('method', 'post');
+                $form.setAttribute('action', reply);
+                $form.setAttribute('style', 'display: none;');
+
+                const $statusInput = document.createElement('input');
+                $statusInput.setAttribute('type', 'text');
+                $statusInput.setAttribute('name', 'status');
+                $statusInput.setAttribute('value', status);
+                $form.appendChild($statusInput);
+
+                const $resultInput = document.createElement('input');
+                $resultInput.setAttribute('type', 'text');
+                $resultInput.setAttribute('name', 'result');
+                $resultInput.setAttribute('value', JSONUtils.stringify(result));
+                $form.appendChild($resultInput);
+
+                const $idInput = document.createElement('input');
+                $idInput.setAttribute('type', 'text');
+                $idInput.setAttribute('name', 'rpcId');
+                $idInput.setAttribute('value', this.id.toString());
+                $form.appendChild($idInput);
+
+                document.body.appendChild($form);
+                $form.submit();
+            }
         }
     }
 
     public toRequestObject(): RedirectRequest {
+        if (this._responseMethod !== ResponseMethod.MESSAGE && !this._returnURL) {
+            throw new Error('ReturnURL is needed');
+        }
         return {
             origin: this._origin,
             data: this._data,
-            returnURL: this._returnURL || POSTMESSAGE_RETURN_URL,
+            returnURL: this._returnURL || 'post-message',
             source: typeof this._source === 'string' ? this._source : null,
+            responseMethod: this._responseMethod as ResponseMethod,
         };
     }
 }

@@ -1,4 +1,4 @@
-import { RedirectRequest, ResponseMessage, ResponseStatus, POSTMESSAGE_RETURN_URL } from './Messages';
+import { RedirectRequest, ResponseMessage, ResponseStatus, ResponseMethod } from './Messages';
 import { JSONUtils } from './JSONUtils';
 import { State } from './State';
 
@@ -27,14 +27,19 @@ export class UrlRpcEncoder {
         const command = fragment.get('command')!;
         fragment.delete('command');
 
+        // Ignore messages without a responseMethod
+        if (!fragment.has('responseMethod')) return null;
+        const responseMethod = fragment.get('responseMethod')!;
+        fragment.delete('responseMethod');
+
         // Ignore messages without a valid return path
         if (!fragment.has('returnURL')) return null;
         const returnURL = fragment.get('returnURL')!;
         fragment.delete('returnURL');
-        const answerByPostMessage = returnURL === POSTMESSAGE_RETURN_URL
+        const answerByPostMessage = responseMethod === ResponseMethod.MESSAGE
                                     && (window.opener || window.parent);
         // Only allow returning to same origin
-        if (!answerByPostMessage && new URL(returnURL).origin !== referrer.origin) return null
+        if (!answerByPostMessage && new URL(returnURL).origin !== referrer.origin) return null;
 
         // Parse args
         let args = [];
@@ -61,7 +66,8 @@ export class UrlRpcEncoder {
                 args,
             },
             returnURL,
-            source: answerByPostMessage ? (window.opener || window.parent) : null,
+            responseMethod: responseMethod as ResponseMethod,
+            source: responseMethod === ResponseMethod.MESSAGE ? (window.opener || window.parent) : null,
         };
     }
 
@@ -121,12 +127,13 @@ export class UrlRpcEncoder {
 
     public static prepareRedirectInvocation(targetURL: string, id: number,
                                             returnURL: string, command: string,
-                                            args: any[]): string {
+                                            args: any[], responseMethod: ResponseMethod): string {
         const targetUrl = new URL(targetURL);
         const fragment = new URLSearchParams(targetUrl.hash.substring(1));
         fragment.set('id', id.toString());
         fragment.set('returnURL', returnURL);
         fragment.set('command', command);
+        fragment.set('responseMethod', responseMethod);
 
         if (Array.isArray(args)) {
             fragment.set('args', JSONUtils.stringify(args));
