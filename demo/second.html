@@ -3,8 +3,9 @@
     <button id="error">Throw Error</button>
     <button id="forward"></button>
     <script src="../dist/rpc.umd.js"></script>
+    <p id="arg"></p>
     <script>
-        const client = new Rpc.RedirectRpcClient('third.html', '*');
+        const client = new Rpc.RedirectRpcClient('http://localhost/rpc/demo/third.html', '*');
         const server = new Rpc.RpcServer('*');
 
         server.onRequest('iFrameTest', (state, arg) => {
@@ -12,18 +13,21 @@
         });
 
         server.onRequest('test', (state, arg) => {
+            console.log(state);
+            console.log(arg);
+            document.getElementById('arg').textContent = arg;
             document.getElementById('forward').textContent = 'Foward to third';
             document.getElementById('forward').onclick = () => {
                 const searchPos = window.location.href.indexOf('?');
-                client.callAndSaveLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state.toJSON(), 'test', arg);
+                client.callAndSaveLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state.toJSON(), 'test3', undefined, arg);
             };
             document.getElementById('error').onclick = () => {
                 state.reply(Rpc.ResponseStatus.ERROR, new Error('this is an error'));
             };
         });
 
-        client.onResponse('test', (result, id, stateStr) => {
-            console.log(result);
+        client.onResponse('test3', (result, id, stateStr) => {
+            console.log(result, id, stateStr);
             const state = Rpc.State.fromJSON(stateStr);
             document.getElementById('forward').textContent = 'Foward to parent';
             document.getElementById('forward').onclick = () => {
@@ -38,8 +42,8 @@
             state.reply(Rpc.ResponseStatus.ERROR, error);
         });
 
-        client.init().then(() => { });
         server.init();
+        client.init().then(() => { });
     </script>
 </body>
 </html>

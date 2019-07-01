@@ -1,27 +1,31 @@
 class DemoClient {
     constructor() {
         this._connected = this._startIFrame();
-        this._redirectClient = new Rpc.RedirectRpcClient('second.html', DemoClient.DEMO_ORIGIN);
+        this._redirectClient = new Rpc.RedirectRpcClient('http://localhost/rpc/demo/second.html', DemoClient.DEMO_ORIGIN);
 
         this._redirectClient.onResponse('test', (result) => {
             console.log('RESULT:', result);
-            alert(result);
         }, console.error);
         this._redirectClient.init().then(() => {});
     }
 
     async testIFrame(arg) {
         await this._connected;
-        return this.iframeClient.call('iFrameTest', arg);
+        return this.iframeClient.call('iFrameTest', [arg]);
     }
 
     async testPopup(arg) {
-        return this._startPopup('test', arg);
+        return this._startPopup('test', [arg]);
     }
 
     async testRedirect(arg) {
         const searchPos = window.location.href.indexOf('?');
-        return this._redirectClient.call(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, 'test', arg);
+        return this._redirectClient.call(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, 'test', undefined, [arg]);
+    }
+
+    async testPostRedirect(arg) {
+        const searchPos = window.location.href.indexOf('?');
+        return this._redirectClient.callAndPOSTResponse(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, 'test', undefined, [arg]);
     }
 
     /* PRIVATE METHODS */
