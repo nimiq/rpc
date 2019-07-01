@@ -2,11 +2,13 @@
 <button id="iframe">iFrame</button>
 <button id="popup">popUp</button>
 <button id="redirect">redirect</button>
+<button id="post">POST</button>
 <script src="../dist/rpc.umd.js"></script>
 <script src="DemoClient.js"></script>
 <script>
     const client = new DemoClient();
     document.getElementById('iframe').onclick = () => client.testIFrame(document.getElementById('arg').value).then(alert);
-    document.getElementById('popup').onclick = () => client.testPopup(document.getElementById('arg').value).then(alert);
+    document.getElementById('popup').onclick = () => client.testPopup(document.getElementById('arg').value).then(console.log);
     document.getElementById('redirect').onclick = () => client.testRedirect(document.getElementById('arg').value);
+    document.getElementById('post').onclick = () => client.testPostRedirect(document.getElementById('arg').value);
 </script>
