@@ -1,6 +1,6 @@
 import { JSONUtils } from './JSONUtils';
 import { RandomUtils } from './RandomUtils';
-import { ResponseMessage, ResponseStatus } from './Messages';
+import { ResponseMessage, ResponseStatus, ResponseMethod } from './Messages';
 import { RequestIdStorage } from './RequestIdStorage';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
 import { ObjectType } from './ObjectType';
@@ -280,12 +280,20 @@ export class RedirectRpcClient extends RpcClient {
     public close() { }
 
     public call(returnURL: string, command: string, handleHistoryBack = false, ...args: any[]) {
-        this.callAndSaveLocalState(returnURL, null, command, handleHistoryBack, ...args);
+        this._call(returnURL, ResponseMethod.URL, null, command, handleHistoryBack, ...args);
+    }
+
+    public callAndPOSTResponse(returnURL: string, command: string, handleHistoryBack = false, ...args: any[]) {
+        this._call(returnURL, ResponseMethod.POST, null, command, handleHistoryBack, ...args);
     }
 
     public callAndSaveLocalState(returnURL: string, state: ObjectType | null, command: string, handleHistoryBack = false, ...args: any[]) {
+        this._call(returnURL, ResponseMethod.URL, state, command, handleHistoryBack, ...args);
+    }
+
+    private _call(returnURL: string, responseMethod: ResponseMethod, state: ObjectType | null, command: string, handleHistoryBack = false, ...args: any[]) {
         const id = RandomUtils.generateRandomId();
-        const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args);
+        const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args, responseMethod);
 
         this._waitingRequests.add(id, command, state);
 
