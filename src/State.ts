@@ -31,7 +31,7 @@ export class State {
     }
     private readonly _origin: string;
     private readonly _id: number;
-    private readonly _responseMethod: ResponseMethod | string;
+    private readonly _responseMethod: ResponseMethod;
     private readonly _returnURL: string | null;
     private readonly _data: {command: string, args: any[], id: number};
     private readonly _source: MessagePort|Window|ServiceWorker|string|null;
@@ -107,16 +107,15 @@ export class State {
                 id: this.id,
             }, this.origin);
         } else if (this._returnURL) {
-            const reply = UrlRpcEncoder.prepareRedirectReply(this, status, result);
-            console.log(this._responseMethod, reply);
             if (this._responseMethod === ResponseMethod.URL) {
                 // Send via top-level navigation
+                const reply = UrlRpcEncoder.prepareRedirectReply(this, status, result);
                 window.location.href = reply;
             } else if (this._responseMethod === ResponseMethod.POST) {
                 // send via form to server
                 const $form = document.createElement('form');
                 $form.setAttribute('method', 'post');
-                $form.setAttribute('action', reply);
+                $form.setAttribute('action', this.returnURL!);
                 $form.setAttribute('style', 'display: none;');
 
                 const $statusInput = document.createElement('input');
