@@ -5,7 +5,7 @@
     <script src="../dist/rpc.umd.js"></script>
     <p id="arg"></p>
     <script>
-        const client = new Rpc.RedirectRpcClient('http://localhost/rpc/demo/third.html', '*');
+        const client = new Rpc.RedirectRpcClient('http://rpc.local/demo/third.html', '*');
         const server = new Rpc.RpcServer('*');
 
         server.onRequest('iFrameTest', (state, arg) => {

@@ -1,4 +1,4 @@
-import { RedirectRequest, ResponseMessage, ResponseStatus, ResponseMethod } from './Messages';
+import { RedirectRequest, ResponseMessage, ResponseStatus, ResponseMethod, POSTMESSAGE_RETURN_URL } from './Messages';
 import { JSONUtils } from './JSONUtils';
 import { State } from './State';
 
@@ -27,15 +27,22 @@ export class UrlRpcEncoder {
         const command = fragment.get('command')!;
         fragment.delete('command');
 
-        // Ignore messages without a responseMethod
-        if (!fragment.has('responseMethod')) return null;
-        const responseMethod = fragment.get('responseMethod')!;
-        fragment.delete('responseMethod');
-
         // Ignore messages without a valid return path
         if (!fragment.has('returnURL')) return null;
         const returnURL = fragment.get('returnURL')!;
         fragment.delete('returnURL');
+
+        // guess the responseMethod in messages without one.
+        let responseMethod: ResponseMethod | undefined;
+        if (fragment.has('responseMethod')) {
+            responseMethod = fragment.get('responseMethod')! as ResponseMethod;
+            fragment.delete('responseMethod');
+        } else if (returnURL === POSTMESSAGE_RETURN_URL) {
+            responseMethod = ResponseMethod.MESSAGE;
+        } else {
+            responseMethod = ResponseMethod.URL;
+        }
+
         const answerByPostMessage = responseMethod === ResponseMethod.MESSAGE
                                     && (window.opener || window.parent);
         // Only allow returning to same origin
@@ -91,7 +98,6 @@ export class UrlRpcEncoder {
         if (!fragment.has('status')) return null;
         const status = fragment.get('status') === ResponseStatus.OK ? ResponseStatus.OK : ResponseStatus.ERROR;
         fragment.delete('status');
-
 
         // Ignore messages without a result
         if (!fragment.has('result')) return null;

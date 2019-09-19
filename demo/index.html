@@ -1,6 +1,7 @@
 <input type="text" id="arg" placeholder="Input Argument"/>
 <button id="iframe">iFrame</button>
 <button id="popup">popUp</button>
+<button id="popup-use-constant">popUp (manual with postmessage constant)</button>
 <button id="redirect">redirect</button>
 <button id="post">POST</button>
 <script src="../dist/rpc.umd.js"></script>
@@ -11,4 +12,5 @@
     document.getElementById('popup').onclick = () => client.testPopup(document.getElementById('arg').value).then(console.log);
     document.getElementById('redirect').onclick = () => client.testRedirect(document.getElementById('arg').value);
     document.getElementById('post').onclick = () => client.testPostRedirect(document.getElementById('arg').value);
+    document.getElementById('popup-use-constant').onclick = () => client.testPopupWithUrlParams(document.getElementById('arg').value).then(console.log);
 </script>
