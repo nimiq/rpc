@@ -287,11 +287,30 @@ export class RedirectRpcClient extends RpcClient {
         this._call(returnURL, ResponseMethod.POST, null, command, handleHistoryBack, ...args);
     }
 
-    public callAndSaveLocalState(returnURL: string, state: ObjectType | null, command: string, handleHistoryBack = false, ...args: any[]) {
+    public callAndSaveLocalState(
+        returnURL: string,
+        state: ObjectType | null,
+        command: string,
+        handleHistoryBack = false,
+        ...args: any[]) {
         this._call(returnURL, ResponseMethod.URL, state, command, handleHistoryBack, ...args);
     }
 
-    private _call(returnURL: string, responseMethod: ResponseMethod, state: ObjectType | null, command: string, handleHistoryBack = false, ...args: any[]) {
+    protected _receive(response: ResponseMessage, persistMessage = true): boolean {
+        const responseWasHandled = super._receive(response);
+        if (responseWasHandled && persistMessage) {
+            window.sessionStorage.setItem(`response-${response.data.id}`, JSONUtils.stringify(response));
+        }
+        return responseWasHandled;
+    }
+
+    private _call(
+        returnURL: string,
+        responseMethod: ResponseMethod,
+        state: ObjectType | null,
+        command: string,
+        handleHistoryBack = false,
+        ...args: any[]) {
         const id = RandomUtils.generateRandomId();
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args, responseMethod);
 
@@ -310,14 +329,6 @@ export class RedirectRpcClient extends RpcClient {
         console.debug('RpcClient REQUEST', command, args);
 
         window.location.href = url;
-    }
-
-    protected _receive(response: ResponseMessage, persistMessage = true): boolean {
-        const responseWasHandled = super._receive(response);
-        if (responseWasHandled && persistMessage) {
-            window.sessionStorage.setItem(`response-${response.data.id}`, JSONUtils.stringify(response));
-        }
-        return responseWasHandled;
     }
 
     private _rejectOnBack(): boolean {

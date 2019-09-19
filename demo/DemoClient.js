@@ -1,7 +1,12 @@
+/*
+ * For the _startPopupUrlParams to work ../src/main.ts must:
+ * export * from './UrlRpcEncoder';
+ * export { ResponseMethod } from './Messages';
+ */
 class DemoClient {
     constructor() {
         this._connected = this._startIFrame();
-        this._redirectClient = new Rpc.RedirectRpcClient('http://localhost/rpc/demo/second.html', DemoClient.DEMO_ORIGIN);
+        this._redirectClient = new Rpc.RedirectRpcClient('http://rpc.local/demo/second.html', DemoClient.DEMO_ORIGIN);
 
         this._redirectClient.onResponse('test', (result) => {
             console.log('RESULT:', result);
@@ -16,6 +21,10 @@ class DemoClient {
 
     async testPopup(arg) {
         return this._startPopup('test', [arg]);
+    }
+
+    async testPopupWitUrlParams(arg) {
+        return this._startPopupUrlParams('test', [arg]);
     }
 
     async testRedirect(arg) {
@@ -88,6 +97,41 @@ class DemoClient {
             $popup.close();
             throw e;
         }
+    }
+
+    /**
+     * @param {string} requestName - The request name in kebab-case (folder name)
+     * @param {...*} [args]
+     */
+    async _startPopupUrlParams(requestName, ...args) {
+        const requestUrl = 'http://rpc.local/demo/second.html';
+
+        const requestURL = new URL(Rpc.UrlRpcEncoder.prepareRedirectInvocation(
+            requestUrl,
+            1,
+            '<postMessage>',
+            requestName,
+            [args],
+            Rpc.ResponseMethod.MESSAGE));
+        const hash = new URLSearchParams(requestURL.hash.substring(1));
+        hash.delete('responseMethod');
+        requestURL.hash = hash.toString();
+
+        const $popup = window.open(
+            requestURL.href,
+            'DemoPopup',
+            `left=${window.innerWidth / 2 - 250},top=100,width=500,height=820,location=yes,dependent=yes`,
+        );
+
+        if (!$popup) {
+            throw new Error('Popup could not be opened.');
+        }
+
+        // Await popup loaded
+        await new Promise(res => { $popup.onload = res; });
+
+        const rpcClient = new Rpc.PostMessageRpcClient($popup, DemoClient.DEMO_ORIGIN);
+        await rpcClient.init();
     }
 
     /** @type {PostMessageRpcClient} */

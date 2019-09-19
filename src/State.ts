@@ -1,4 +1,4 @@
-import { PostMessage, RedirectRequest, ResponseStatus, ResponseMethod } from './Messages';
+import { PostMessage, RedirectRequest, ResponseStatus, ResponseMethod, POSTMESSAGE_RETURN_URL } from './Messages';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
 export { ResponseStatus } from './Messages';
 import { JSONUtils } from './JSONUtils';
@@ -43,7 +43,7 @@ export class State {
         this._id = message.data.id;
         this._responseMethod = 'responseMethod' in message
             ? message.responseMethod!
-            : 'source' in message && !('returnURL' in message)
+            : 'source' in message && !('returnURL' in message && message.returnURL! === POSTMESSAGE_RETURN_URL)
                 ? ResponseMethod.MESSAGE
                 : ResponseMethod.URL;
         this._returnURL = 'returnURL' in message ? message.returnURL : null;
