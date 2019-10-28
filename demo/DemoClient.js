@@ -1,16 +1,24 @@
 /*
- * For the _startPopupUrlParams to work ../src/main.ts must:
+ * The demo requires the project root to be served as http://rpc.local/.
+ * The Server needs to be able to receive POST data.
+ * The POST response is not printed anywhere, but can be investigated in the header.
+ * The project then needs to be build to test changes, as the demos use the ./dist/ folder.
+ * It is strongly advised to play around with the different CallOptions after changes are made,
+ * as not all of the combinations are represented.
+ *
+ * For testing purposes ../src/main.ts must furthermore have an additional export:
  * export * from './UrlRpcEncoder';
- * export { ResponseMethod } from './Messages';
  */
 class DemoClient {
     constructor() {
         this._connected = this._startIFrame();
         this._redirectClient = new Rpc.RedirectRpcClient('http://rpc.local/demo/second.html', DemoClient.DEMO_ORIGIN);
 
-        this._redirectClient.onResponse('test', (result) => {
-            console.log('RESULT:', result);
-        }, console.error);
+        this._redirectClient.onResponse(
+            'test',
+            (result, id, state) => console.log('RESULT:', result, id, state),
+            (result, id, state) => console.error('RESULT:', result, id, state),
+        );
         this._redirectClient.init().then(() => {});
     }
 
@@ -27,14 +35,45 @@ class DemoClient {
         return this._startPopupUrlParams('test', [arg]);
     }
 
-    async testRedirect(arg) {
+    async testRedirect(arg, useCallOptions) {
         const searchPos = window.location.href.indexOf('?');
-        return this._redirectClient.call(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, 'test', undefined, [arg]);
+        return this._redirectClient.call(
+            searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href,
+            'test',
+            useCallOptions ? {} : undefined,
+            [arg],
+        );
     }
 
-    async testPostRedirect(arg) {
+    async testPostRedirect(arg, useCallOptions) {
         const searchPos = window.location.href.indexOf('?');
-        return this._redirectClient.callAndPOSTResponse(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, 'test', undefined, [arg]);
+        return this._redirectClient.call(
+            searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href,
+            'test',
+            // only exist as CallOption version
+            useCallOptions ? { responseMethod: Rpc.ResponseMethod.POST } : undefined,
+            [arg],
+        );
+    }
+
+    async testRedirectWithState(arg, useCallOptions) {
+        const searchPos = window.location.href.indexOf('?');
+        if (useCallOptions) {
+            return this._redirectClient.call(
+                searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href,
+                'test',
+                { state: { testSate: 'This is a test state' } },
+                [arg],
+            );
+        } else {
+            return this._redirectClient.callAndSaveLocalState(
+                searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href,
+                { testState: 'This is a test state' },
+                'test',
+                undefined,
+                [arg],
+            )
+        }
     }
 
     /* PRIVATE METHODS */
@@ -108,14 +147,11 @@ class DemoClient {
 
         const requestURL = new URL(Rpc.UrlRpcEncoder.prepareRedirectInvocation(
             requestUrl,
-            1,
-            '<postMessage>',
+            100,
+            'http://rpc.local/demo/index.html',
             requestName,
             [args],
             Rpc.ResponseMethod.MESSAGE));
-        const hash = new URLSearchParams(requestURL.hash.substring(1));
-        hash.delete('responseMethod');
-        requestURL.hash = hash.toString();
 
         const $popup = window.open(
             requestURL.href,

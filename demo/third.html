@@ -4,8 +4,8 @@
 <script>
     const server = new Rpc.RpcServer('*');
     server.onRequest('test3', (state, arg) => {
-            console.log(state);
-            console.log(arg);
+        console.log(state);
+        console.log(arg);
         return new Promise((resolve, reject) => {
             document.getElementById('ok').onclick = () => {
                 resolve(`received ${arg}, entered ${document.getElementById('input').value}`);
