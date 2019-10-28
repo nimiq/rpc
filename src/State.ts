@@ -1,4 +1,4 @@
-import { PostMessage, RedirectRequest, ResponseStatus, ResponseMethod, POSTMESSAGE_RETURN_URL } from './Messages';
+import { PostMessage, RedirectRequest, ResponseStatus, ResponseMethod } from './Messages';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
 export { ResponseStatus } from './Messages';
 import { JSONUtils } from './JSONUtils';
@@ -41,11 +41,11 @@ export class State {
 
         this._origin = message.origin;
         this._id = message.data.id;
-        this._responseMethod = 'responseMethod' in message
-            ? message.responseMethod!
-            : 'source' in message && !('returnURL' in message && message.returnURL! === POSTMESSAGE_RETURN_URL)
+        this._responseMethod = 'responseMethod' in message && message.responseMethod !== undefined
+            ? message.responseMethod
+            : 'source' in message && !('returnURL' in message)
                 ? ResponseMethod.MESSAGE
-                : ResponseMethod.URL;
+                : ResponseMethod.GET;
         this._returnURL = 'returnURL' in message ? message.returnURL : null;
         this._data = message.data;
         this._source = 'source' in message ? message.source : null;
@@ -107,7 +107,7 @@ export class State {
                 id: this.id,
             }, this.origin);
         } else if (this._returnURL) {
-            if (this._responseMethod === ResponseMethod.URL) {
+            if (this._responseMethod === ResponseMethod.GET) {
                 // Send via top-level navigation
                 const reply = UrlRpcEncoder.prepareRedirectReply(this, status, result);
                 window.location.href = reply;
@@ -116,7 +116,7 @@ export class State {
                 const $form = document.createElement('form');
                 $form.setAttribute('method', 'post');
                 $form.setAttribute('action', this.returnURL!);
-                $form.setAttribute('style', 'display: none;');
+                $form.style.display = 'none';
 
                 const $statusInput = document.createElement('input');
                 $statusInput.setAttribute('type', 'text');
@@ -149,7 +149,7 @@ export class State {
         return {
             origin: this._origin,
             data: this._data,
-            returnURL: this._returnURL || 'post-message',
+            returnURL: this._returnURL || '',
             source: typeof this._source === 'string' ? this._source : null,
             responseMethod: this._responseMethod as ResponseMethod,
         };

@@ -1,4 +1,4 @@
-import { RedirectRequest, ResponseMessage, ResponseStatus, ResponseMethod, POSTMESSAGE_RETURN_URL } from './Messages';
+import { RedirectRequest, ResponseMessage, ResponseStatus, ResponseMethod } from './Messages';
 import { JSONUtils } from './JSONUtils';
 import { State } from './State';
 
@@ -33,14 +33,13 @@ export class UrlRpcEncoder {
         fragment.delete('returnURL');
 
         // guess the responseMethod in messages without one.
-        let responseMethod: ResponseMethod | undefined;
+        let responseMethod: ResponseMethod = ResponseMethod.GET;
         if (fragment.has('responseMethod')) {
             responseMethod = fragment.get('responseMethod')! as ResponseMethod;
             fragment.delete('responseMethod');
-        } else if (returnURL === POSTMESSAGE_RETURN_URL) {
-            responseMethod = ResponseMethod.MESSAGE;
-        } else {
-            responseMethod = ResponseMethod.URL;
+            if (!Object.values(ResponseMethod).includes(responseMethod)) {
+                throw new Error('Invalid ResponseMethod');
+            }
         }
 
         const answerByPostMessage = responseMethod === ResponseMethod.MESSAGE

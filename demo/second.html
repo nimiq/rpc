@@ -2,6 +2,7 @@
 <body>
     <button id="error">Throw Error</button>
     <button id="forward"></button>
+    <button id="forward-and-message"></button>
     <script src="../dist/rpc.umd.js"></script>
     <p id="arg"></p>
     <script>
@@ -20,6 +21,22 @@
             document.getElementById('forward').onclick = () => {
                 const searchPos = window.location.href.indexOf('?');
                 client.callAndSaveLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state.toJSON(), 'test3', undefined, arg);
+            };
+            if (window.opener) {
+                document.getElementById('forward-and-message').textContent = 'Foward to third and message response to parent';
+            } else {
+                document.getElementById('forward-and-message').textContent = 'Foward to third and message response to parent(which does not exist)';
+            }
+            document.getElementById('forward-and-message').onclick = () => {
+                client.call(
+                    '', // not needed for ResponseMethod.MESSAGE,
+                    'test3',
+                    {
+                        responseMethod: Rpc.ResponseMethod.MESSAGE,
+                        state: state.toJSON(),
+                    },
+                    [arg],
+                );
             };
             document.getElementById('error').onclick = () => {
                 state.reply(Rpc.ResponseStatus.ERROR, new Error('this is an error'));

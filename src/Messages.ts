@@ -29,7 +29,7 @@ export interface RedirectRequest {
 
 export enum ResponseMethod {
     POST = 'post',
-    URL = 'url',
+    GET = 'get',
     MESSAGE = 'message',
 }
 
@@ -37,5 +37,3 @@ export enum ResponseStatus {
     OK = 'ok',
     ERROR = 'error',
 }
-
-export const POSTMESSAGE_RETURN_URL = '<postMessage>';

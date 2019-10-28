@@ -1,8 +1,10 @@
 <input type="text" id="arg" placeholder="Input Argument"/>
+<input type="checkbox" id="use-call-options" value="1" checked/> Use Call Options
 <button id="iframe">iFrame</button>
 <button id="popup">popUp</button>
-<button id="popup-use-constant">popUp (manual with postmessage constant)</button>
+<button id="popup-use-constant">popUp (manual url)</button>
 <button id="redirect">redirect</button>
+<button id="redirect-state">redirect with state</button>
 <button id="post">POST</button>
 <script src="../dist/rpc.umd.js"></script>
 <script src="DemoClient.js"></script>
@@ -10,7 +12,17 @@
     const client = new DemoClient();
     document.getElementById('iframe').onclick = () => client.testIFrame(document.getElementById('arg').value).then(alert);
     document.getElementById('popup').onclick = () => client.testPopup(document.getElementById('arg').value).then(console.log);
-    document.getElementById('redirect').onclick = () => client.testRedirect(document.getElementById('arg').value);
-    document.getElementById('post').onclick = () => client.testPostRedirect(document.getElementById('arg').value);
-    document.getElementById('popup-use-constant').onclick = () => client.testPopupWithUrlParams(document.getElementById('arg').value).then(console.log);
+    document.getElementById('redirect').onclick = () => client.testRedirect(
+        document.getElementById('arg').value,
+        document.getElementById('use-call-options').checked,
+    );
+    document.getElementById('post').onclick = () => client.testPostRedirect(
+        document.getElementById('arg').value,
+        document.getElementById('use-call-options').checked,
+    );
+    document.getElementById('redirect-state').onclick = () => client.testRedirectWithState(
+        document.getElementById('arg').value,
+        document.getElementById('use-call-options').checked,
+    );
+    document.getElementById('popup-use-constant').onclick = () => client.testPopupWitUrlParams(document.getElementById('arg').value).then(console.log);
 </script>
