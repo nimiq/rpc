@@ -33,9 +33,9 @@ export class UrlRpcEncoder {
         fragment.delete('returnURL');
 
         // guess the responseMethod in messages without one.
-        let responseMethod: ResponseMethod = ResponseMethod.GET;
+        let responseMethod = ResponseMethod.GET;
         if (fragment.has('responseMethod')) {
-            responseMethod = fragment.get('responseMethod')! as ResponseMethod;
+            responseMethod = fragment.get('responseMethod') as ResponseMethod;
             fragment.delete('responseMethod');
             if (!Object.values(ResponseMethod).includes(responseMethod)) {
                 throw new Error('Invalid ResponseMethod');
@@ -72,7 +72,7 @@ export class UrlRpcEncoder {
                 args,
             },
             returnURL,
-            responseMethod: responseMethod as ResponseMethod,
+            responseMethod: responseMethod,
             source: responseMethod === ResponseMethod.MESSAGE ? (window.opener || window.parent) : null,
         };
     }
