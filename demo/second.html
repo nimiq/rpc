@@ -21,7 +21,7 @@
             document.getElementById('forward').textContent = 'Foward to third';
             document.getElementById('forward').onclick = () => {
                 const searchPos = window.location.href.indexOf('?');
-                client.callAndSaveLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state.toJSON(), 'test3', undefined, arg);
+                client.callAndSaveLocalState(searchPos >= 0 ? window.location.href.substr(0, searchPos) : window.location.href, state, 'test3', undefined, arg);
             };
             if (window.opener) {
                 document.getElementById('forward-and-message').textContent = 'Foward to third and message response to parent';
@@ -33,8 +33,8 @@
                     '', // not needed for ResponseMethod.MESSAGE,
                     'test3',
                     {
-                        responseMethod: Rpc.ResponseMethod.MESSAGE,
-                        state: state.toJSON(),
+                        responseMethod: Rpc.ResponseMethod.POST_MESSAGE,
+                        state: state,
                     },
                     [arg],
                 );

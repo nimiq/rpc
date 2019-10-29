@@ -37,7 +37,7 @@ class DemoClient {
             location.origin + '/post',
             'test',
             // only exist as CallOption version
-            { responseMethod: Rpc.ResponseMethod.POST },
+            { responseMethod: Rpc.ResponseMethod.HTTP_POST },
             [arg],
         );
     }

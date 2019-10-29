@@ -1,5 +1,6 @@
 import { PostMessage, RedirectRequest, ResponseStatus, ResponseMethod } from './Messages';
 import { UrlRpcEncoder } from './UrlRpcEncoder';
+import { FormRpcEncoder } from './FormRpcEncoder';
 export { ResponseStatus } from './Messages';
 import { JSONUtils } from './JSONUtils';
 
@@ -41,11 +42,11 @@ export class State {
 
         this._origin = message.origin;
         this._id = message.data.id;
-        this._responseMethod = 'responseMethod' in message && message.responseMethod !== undefined
+        this._responseMethod = 'responseMethod' in message && !!message.responseMethod
             ? message.responseMethod
             : 'source' in message && !('returnURL' in message)
-                ? ResponseMethod.MESSAGE
-                : ResponseMethod.GET;
+                ? ResponseMethod.POST_MESSAGE
+                : ResponseMethod.HTTP_GET;
         this._returnURL = 'returnURL' in message ? message.returnURL : null;
         this._data = message.data;
         this._source = 'source' in message ? message.source : null;
@@ -58,7 +59,7 @@ export class State {
             responseMethod: this._responseMethod,
         };
 
-        if (this._responseMethod === ResponseMethod.MESSAGE) {
+        if (this._responseMethod === ResponseMethod.POST_MESSAGE) {
             if (this._source === window.opener) {
                 obj.source = 'opener';
             } else if (this._source === window.parent) {
@@ -84,7 +85,7 @@ export class State {
 
         // TODO: Clear waiting request storage?
 
-        if (this._responseMethod === ResponseMethod.MESSAGE) {
+        if (this._responseMethod === ResponseMethod.POST_MESSAGE) {
             // Send via postMessage (e.g., popup or url-persisted popup)
 
             let target;
@@ -107,44 +108,21 @@ export class State {
                 id: this.id,
             }, this.origin);
         } else if (this._returnURL) {
-            if (this._responseMethod === ResponseMethod.GET) {
+            if (this._responseMethod === ResponseMethod.HTTP_GET) {
                 // Send via top-level navigation
                 const reply = UrlRpcEncoder.prepareRedirectReply(this, status, result);
                 window.location.href = reply;
-            } else if (this._responseMethod === ResponseMethod.POST) {
+            } else if (this._responseMethod === ResponseMethod.HTTP_POST) {
                 // send via form to server
-                const $form = document.createElement('form');
-                $form.setAttribute('method', 'post');
-                $form.setAttribute('action', this.returnURL!);
-                $form.style.display = 'none';
-
-                const $statusInput = document.createElement('input');
-                $statusInput.setAttribute('type', 'text');
-                $statusInput.setAttribute('name', 'status');
-                $statusInput.setAttribute('value', status);
-                $form.appendChild($statusInput);
-
-                const $resultInput = document.createElement('input');
-                $resultInput.setAttribute('type', 'text');
-                $resultInput.setAttribute('name', 'result');
-                $resultInput.setAttribute('value', JSONUtils.stringify(result));
-                $form.appendChild($resultInput);
-
-                const $idInput = document.createElement('input');
-                $idInput.setAttribute('type', 'text');
-                $idInput.setAttribute('name', 'rpcId');
-                $idInput.setAttribute('value', this.id.toString());
-                $form.appendChild($idInput);
-
-                document.body.appendChild($form);
+                const $form = FormRpcEncoder.prepareFormReply(this, status, result);
                 $form.submit();
             }
         }
     }
 
     public toRequestObject(): RedirectRequest {
-        if (this._responseMethod !== ResponseMethod.MESSAGE && !this._returnURL) {
-            throw new Error('ReturnURL is needed');
+        if (this._responseMethod !== ResponseMethod.POST_MESSAGE && !this._returnURL) {
+            throw new Error('Cannot convert to request object: returnURL is missing');
         }
         return {
             origin: this._origin,
