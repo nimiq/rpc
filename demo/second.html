@@ -1,12 +1,13 @@
 <html>
 <body>
+    <button id="ok">Reply OK</button>
     <button id="error">Throw Error</button>
     <button id="forward"></button>
     <button id="forward-and-message"></button>
     <script src="../dist/rpc.umd.js"></script>
     <p id="arg"></p>
     <script>
-        const client = new Rpc.RedirectRpcClient('http://rpc.local/demo/third.html', '*');
+        const client = new Rpc.RedirectRpcClient(location.origin + '/demo/third.html', '*');
         const server = new Rpc.RpcServer('*');
 
         server.onRequest('iFrameTest', (state, arg) => {
@@ -37,6 +38,9 @@
                     },
                     [arg],
                 );
+            };
+            document.getElementById('ok').onclick = () => {
+                state.reply(Rpc.ResponseStatus.OK, {answer: 'OK answered from second.html'});
             };
             document.getElementById('error').onclick = () => {
                 state.reply(Rpc.ResponseStatus.ERROR, new Error('this is an error'));
