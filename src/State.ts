@@ -151,7 +151,7 @@ export class State {
             data: this._data,
             returnURL: this._returnURL || '',
             source: typeof this._source === 'string' ? this._source : null,
-            responseMethod: this._responseMethod as ResponseMethod,
+            responseMethod: this._responseMethod,
         };
     }
 }
