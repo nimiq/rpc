@@ -245,7 +245,7 @@ export { PostMessageRpcClient };
 export interface CallOptions {
     state?: ObjectType;
     handleHistoryBack?: boolean;
-    responseMethod: ResponseMethod;
+    responseMethod?: ResponseMethod;
 }
 
 export class RedirectRpcClient extends RpcClient {
@@ -288,44 +288,39 @@ export class RedirectRpcClient extends RpcClient {
     public call(
         returnURL: string,
         command: string,
-        optionsOrHandleHistory: CallOptions | boolean | undefined,
+        optionsOrHandleHistory?: CallOptions | boolean | null,
         ...args: any[]): void {
-        if (typeof optionsOrHandleHistory === 'undefined') {
-            // no specific Options, proceed with default values
+        if (!optionsOrHandleHistory || typeof optionsOrHandleHistory === 'boolean') {
+            if (typeof optionsOrHandleHistory === 'boolean') {
+                console.warn('RedirectRpcClient.call(string, string, boolean, any[]) is deprecated.'
+                    + ' Use RedirectRpcClient.call(string, string, CallOptions, any[]) with an'
+                    + ' appropriate CallOptions object instead.');
+            }
             this._call(
                 returnURL,
                 command,
                 {
-                    responseMethod: ResponseMethod.GET,
-                    handleHistoryBack: false,
-                },
-                ...args,
-            );
-        } else if (typeof optionsOrHandleHistory === 'boolean') {
-            // a handleHistoryBack flag is set, aside from that use default values.
-            this._call(
-                returnURL,
-                command,
-                {
-                    responseMethod: ResponseMethod.GET,
-                    handleHistoryBack: optionsOrHandleHistory,
+                    responseMethod: ResponseMethod.HTTP_GET,
+                    handleHistoryBack: !!optionsOrHandleHistory,
                 },
                 ...args,
             );
         } else if (typeof optionsOrHandleHistory === 'object') {
             // Options are given, warn in case they do not make sense.
-            // responseMethod = ResponseMethod.MESSAGE does not have a single strong use case and could be omitted
+            // ResponseMethod.POST_MESSAGE does not have a single strong use case for redirects and could be omitted
             // until at least one of the following use cases is properly implemented.
-            // TODO: We might want to support those cases in the future. See comments.
-            if (optionsOrHandleHistory.responseMethod === ResponseMethod.MESSAGE) {
-                if (!window.opener) {
-                    // Could be mitigated i.e. by having the 'middle' rpcServer communicate to the initial rpcClient
-                    // the new requestId the request is going to be answered by.
-                    console.warn('Window has no opener, responseMethod: ResponseMethod.MESSAGE is going to fail.');
+            // TODO: We might want to support those cases in the future. See comment.
+            if (optionsOrHandleHistory.responseMethod === ResponseMethod.POST_MESSAGE) {
+                if (!window.opener && !window.parent) {
+                    throw new Error('Window has no opener or parent,'
+                        + ' responseMethod: ResponseMethod.POST_MESSAGE would fail.');
                 } else {
-                    // Could be mitigated i.e. by adding a method to the rpcClient
-                    // which adds an requestId with a callback.
-                    console.warn('Response will skip at least one rpc call, which will result in an Unknown response.');
+                    // Could be mitigated i.e. by having the 'middle' rpcServer communicate to the initial rpcClient
+                    // the new requestId the request is going to be answered by in case of a redirect within a popup.
+                    // In case of opening a popup with url encoded parameters instead of post message, thereby
+                    // circumventing client.call(), the popup opening behaviour could be implemented in _call() to
+                    // re-enable usage of the call() method.
+                    console.warn('Response will skip at least one rpc call, which will result in an unknown response.');
                 }
             }
             this._call(returnURL,  command, optionsOrHandleHistory, ...args);
@@ -333,7 +328,7 @@ export class RedirectRpcClient extends RpcClient {
     }
 
     /**
-     * @deprecated Use call with the appropriate `CallOptions` instead.
+     * @deprecated Use call() with an appropriate `CallOptions` object instead.
      */
     public callAndSaveLocalState(
         returnURL: string,
@@ -341,11 +336,13 @@ export class RedirectRpcClient extends RpcClient {
         command: string,
         handleHistoryBack = false,
         ...args: any[]) {
+        console.warn('RedirectRpcClient.callAndSaveLocalState() is deprecated. Use RedirectRpcClient.call()'
+            + ' with an apropriate CallOptions object instead.');
         this._call(
             returnURL,
             command,
             {
-                responseMethod: ResponseMethod.GET,
+                responseMethod: ResponseMethod.HTTP_GET,
                 state: state ? state : undefined,
                 handleHistoryBack,
             },
@@ -362,12 +359,12 @@ export class RedirectRpcClient extends RpcClient {
 
     private _call(returnURL: string, command: string, callOptions: CallOptions, ...args: any[]): void {
         const id = RandomUtils.generateRandomId();
-        const responseMethod = callOptions.responseMethod ? callOptions.responseMethod : ResponseMethod.GET;
+        const responseMethod = callOptions.responseMethod || ResponseMethod.HTTP_GET;
         const url = UrlRpcEncoder.prepareRedirectInvocation(this._target, id, returnURL, command, args, responseMethod);
 
-        this._waitingRequests.add(id, command, callOptions.state ? callOptions.state : null);
+        this._waitingRequests.add(id, command, callOptions.state || null);
 
-        if (callOptions.handleHistoryBack === true) {
+        if (callOptions.handleHistoryBack) {
             /**
              * The rpcBackRejectionId in the history.state is used to detect in the client
              * if a history entry was visited before, which makes it a history.back

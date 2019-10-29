@@ -32,8 +32,8 @@ export class UrlRpcEncoder {
         const returnURL = fragment.get('returnURL')!;
         fragment.delete('returnURL');
 
-        // guess the responseMethod in messages without one.
-        let responseMethod = ResponseMethod.GET;
+        // Guess the responseMethod in messages without one.
+        let responseMethod = ResponseMethod.HTTP_GET;
         if (fragment.has('responseMethod')) {
             responseMethod = fragment.get('responseMethod') as ResponseMethod;
             fragment.delete('responseMethod');
@@ -42,7 +42,7 @@ export class UrlRpcEncoder {
             }
         }
 
-        const answerByPostMessage = responseMethod === ResponseMethod.MESSAGE
+        const answerByPostMessage = responseMethod === ResponseMethod.POST_MESSAGE
                                     && (window.opener || window.parent);
         // Only allow returning to same origin
         if (!answerByPostMessage && new URL(returnURL).origin !== referrer.origin) return null;
@@ -72,8 +72,8 @@ export class UrlRpcEncoder {
                 args,
             },
             returnURL,
-            responseMethod: responseMethod,
-            source: responseMethod === ResponseMethod.MESSAGE ? (window.opener || window.parent) : null,
+            responseMethod,
+            source: responseMethod === ResponseMethod.POST_MESSAGE ? (window.opener || window.parent) : null,
         };
     }
 

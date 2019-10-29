@@ -28,9 +28,9 @@ export interface RedirectRequest {
 }
 
 export enum ResponseMethod {
-    POST = 'post',
-    GET = 'get',
-    MESSAGE = 'message',
+    HTTP_POST = 'http-post',
+    HTTP_GET = 'http-get',
+    POST_MESSAGE = 'post-message',
 }
 
 export enum ResponseStatus {
