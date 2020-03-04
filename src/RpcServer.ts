@@ -113,10 +113,12 @@ export class RpcServer {
             // Call method
             const result = requestedMethod(state, ...args);
 
-            // If a value is returned, we take care of the reply,
-            // otherwise we assume the handler to do the reply when appropriate.
-            if (result instanceof Promise) {
-                result
+            // If a value !== undefined is returned, we take care of the reply, otherwise we assume the handler to do
+            // the reply when appropriate. If the result is a promise, await it first. Also check for promise polyfills
+            // in case native Promise is not available or has been overwritten by a polyfill.
+            if (result instanceof Promise
+                || (result && result.constructor && result.constructor.name === 'Promise')) {
+                (result as Promise<any>)
                     .then((finalResult) => {
                         if (finalResult !== undefined) {
                             RpcServer._ok(state!, finalResult);
